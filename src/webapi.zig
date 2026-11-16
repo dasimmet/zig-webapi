@@ -20,6 +20,7 @@ const JsPtrInt = @Int(.signed, @bitSizeOf(usize));
 pub const BroadcastChannel = @import("BroadcastChannel.zig");
 pub const codec = @import("codec.zig");
 pub const console = @import("console.zig");
+pub const Crypto = @import("Crypto.zig");
 pub const dom = @import("dom.zig");
 pub const download = @import("download.zig");
 pub const Event = @import("Event.zig");
@@ -40,14 +41,7 @@ pub const fetch = Fetch.fetch;
 /// with it.
 pub fn PseudoRandomNumberGenerator() std.Random.DefaultPrng {
     var rng = std.Random.DefaultPrng.init(123456789);
-    const window = zjb.global("window");
-    const crypto = window.get("crypto", zjb.Handle);
-    defer crypto.release();
-    var useed: u64 = undefined;
-    const useedptr: []const u8 = @ptrCast(@alignCast(&useed));
-    const seed = zjb.u8ArrayView(useedptr);
-    defer seed.release();
-    crypto.call("getRandomValues", .{seed}, void);
+    const useed = Crypto.global().random(u64);
 
     std.log.info("Random Number Generator Seed: {d}", .{useed});
     rng.seed(useed);

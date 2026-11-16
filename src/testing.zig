@@ -789,3 +789,98 @@ test "webapi.dom typed event listeners via boundEventListenerTyped" {
     }
     try Mock.assertNoHandleLeaks();
 }
+
+test "Crypto: window.crypto, getRandomValues, randomUUID, and SubtleCrypto lifecycle" {
+    // Warm up the singleton TextEncoder/TextDecoder cache before resetMock so
+    // handle-leak assertions only measure handles allocated during the test.
+    const warmup = webapi.codec.encode(zjb.constString("").asHandle());
+    warmup.release();
+
+    zjb.resetMock();
+    try zjb.assertNoHandleLeaks();
+    {
+        // Global & Window accessors
+        const c_global = webapi.Crypto.global();
+        try std.testing.expect(!c_global.isNull());
+
+        try std.testing.expect(webapi.Crypto.isSupported());
+        try std.testing.expect(webapi.Crypto.null.isNull());
+
+        // getRandomValues (empty, small, and >65536 chunked)
+        var empty: [0]u8 = .{};
+        c_global.getRandomValues(&empty);
+
+        var small: [32]u8 = undefined;
+        c_global.getRandomValues(&small);
+
+        var large: [70000]u8 = undefined;
+        c_global.getRandomValues(&large);
+
+        _ = c_global.random(u64);
+        const rng = c_global.stdRandom();
+        _ = rng.int(u32);
+
+        // randomUUID (buffer & allocator)
+        var uuid_buf: [64]u8 = undefined;
+        const uuid_slice = c_global.randomUUID(&uuid_buf);
+        _ = uuid_slice;
+
+        const uuid_alloc = try c_global.randomUUIDAlloc(std.testing.allocator);
+        defer std.testing.allocator.free(uuid_alloc);
+
+        // SubtleCrypto, CryptoKey, CryptoKeyPair
+        const subtle = c_global.subtle();
+        defer subtle.release();
+        try std.testing.expect(!subtle.isNull());
+
+        const digest_p = subtle.digest(.@"SHA-256", "hello");
+        digest_p.release();
+
+        const alg = zjb.global("Object").new(.{});
+        defer alg.release();
+
+        const key = webapi.Crypto.CryptoKey.fromHandle(zjb.string("secret"));
+        defer key.release();
+        try std.testing.expectEqual(@as(?webapi.Crypto.KeyType, null), key.keyType());
+        try std.testing.expectEqual(
+            @as(?webapi.Crypto.KeyType, .secret),
+            std.meta.stringToEnum(webapi.Crypto.KeyType, "secret"),
+        );
+        _ = key.extractable();
+        const key_alg = key.algorithm();
+        key_alg.release();
+        const key_usages = key.usages();
+        key_usages.release();
+
+        const pair = webapi.Crypto.CryptoKeyPair.fromHandle(Mock.allocHandle("CryptoKeyPair"));
+        defer pair.release();
+        const pub_k = pair.publicKey();
+        pub_k.release();
+        const priv_k = pair.privateKey();
+        priv_k.release();
+
+        const enc_p = subtle.encrypt(alg, key, "plaintext");
+        enc_p.release();
+        const dec_p = subtle.decrypt(alg, key, "ciphertext");
+        dec_p.release();
+        const sign_p = subtle.sign(alg, key, "message");
+        sign_p.release();
+        const verify_p = subtle.verify(alg, key, "sig", "message");
+        verify_p.release();
+        const gen_p = subtle.generateKey(alg, true, &.{ .encrypt, .decrypt });
+        gen_p.release();
+        const derive_k_p = subtle.deriveKey(alg, key, alg, false, &.{.deriveKey});
+        derive_k_p.promise.release();
+        const derive_b_p = subtle.deriveBits(alg, key, 256);
+        derive_b_p.release();
+        const import_p = subtle.importRawKey(.raw, "raw-key-bytes", alg, true, &.{.encrypt});
+        import_p.promise.release();
+        const export_p = subtle.exportKey(.jwk, key);
+        export_p.release();
+        const wrap_p = subtle.wrapKey(.raw, key, key, alg);
+        wrap_p.release();
+        const unwrap_p = subtle.unwrapKey(.raw, "wrapped", key, alg, alg, true, &.{.decrypt});
+        unwrap_p.promise.release();
+    }
+    try zjb.assertNoHandleLeaks();
+}
