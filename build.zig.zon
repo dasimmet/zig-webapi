@@ -4,8 +4,8 @@
     .fingerprint = 0x355c5a72c489077e,
     .dependencies = .{
         .javascript_bridge = .{
-            .url = "git+https://github.com/dasimmet/zig-javascript-bridge.git#0b0520c3810f5f33516b111fa44aa055f40b2034",
-            .hash = "javascript_bridge-0.0.0-E-FZAQv4AADMlqnC-zZja15qfWLj_Jgua_Ea4_XrMW0L",
+            .url = "git+https://github.com/dasimmet/zig-javascript-bridge.git#daa451d0cc28650046b00e09ad9242bf46281eca",
+            .hash = "javascript_bridge-0.0.0-E-FZAWT4AAD-I1nKIpdEhjzgxJdnpWqrw0nAD1gkZhX5",
         },
     },
     .minimum_zig_version = "0.17.1",
