@@ -1,11 +1,11 @@
 //! Event Web API interface representing an event dispatched in the DOM.
 //! Event handles passed to listeners are non-owning views whose lifetime is
-//! managed by `zjblib.boundEventListener` / `zjblib.boundEventListenerTyped`.
+//! managed by `webapi.boundEventListener` / `webapi.boundEventListenerTyped`.
 //! https://developer.mozilla.org/en-US/docs/Web/API/Event
 
 // 1. Imports
 const std = @import("std");
-const zjblib = @import("zjblib.zig");
+const webapi = @import("webapi.zig");
 pub const BeforeInstallPromptEvent =
     @import("Event/BeforeInstallPromptEvent.zig");
 pub const ClipboardEvent = @import("Event/ClipboardEvent.zig");
@@ -23,7 +23,7 @@ pub const WheelEvent = @import("Event/WheelEvent.zig");
 
 // 2. Shortcuts on imports
 const Event = @This();
-const zjb = zjblib.zjb;
+const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
@@ -124,7 +124,7 @@ pub fn eventType(self: Event, buf: []u8) []const u8 {
     std.debug.assert(buf.len > 0);
     const type_h = self.handle.get("type", zjb.Handle);
     defer type_h.release();
-    return zjblib.stringFromHandle(type_h, buf);
+    return webapi.stringFromHandle(type_h, buf);
 }
 
 /// Returns an owned JS handle to `event.target`.

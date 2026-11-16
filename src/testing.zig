@@ -1,11 +1,11 @@
-//! Host-side unit tests for `zjblib` modules and the in-memory `zjb` mock.
+//! Host-side unit tests for `webapi` modules and the in-memory `zjb` mock.
 
 const std = @import("std");
-const zjblib = @import("zjblib.zig");
+const webapi = @import("webapi.zig");
 
-const dom = zjblib.dom;
-const IDB = zjblib.IndexedDb;
-const zjb = zjblib.zjb;
+const dom = webapi.dom;
+const IDB = webapi.IndexedDb;
+const zjb = webapi.zjb;
 const Mock = zjb.Mock;
 
 /// Writes a single-file POSIX ustar tar archive into `buf` via
@@ -110,8 +110,8 @@ test "DOMRect fromHandle extracts fundamental fields and computes bounds" {
     try std.testing.expectEqual(@as(f32, 60.0), neg.left());
 }
 
-test "zjblib.Fetch RequestInit" {
-    const init = zjblib.Fetch.RequestInit{
+test "webapi.Fetch RequestInit" {
+    const init = webapi.Fetch.RequestInit{
         .method = "POST",
         .body = "hello=world",
     };
@@ -119,7 +119,7 @@ test "zjblib.Fetch RequestInit" {
     try std.testing.expectEqualStrings("hello=world", init.body.?);
 }
 
-test "zjblib.IndexedDb TransactionMode @tagName" {
+test "webapi.IndexedDb TransactionMode @tagName" {
     try std.testing.expectEqualStrings(
         "readonly",
         @tagName(IDB.TransactionMode.readonly),
@@ -134,8 +134,8 @@ test "zjblib.IndexedDb TransactionMode @tagName" {
     );
 }
 
-test "zjblib.Wasi WasiOptions and preopens" {
-    const opts = zjblib.Wasi.Options{
+test "webapi.Wasi WasiOptions and preopens" {
+    const opts = webapi.Wasi.Options{
         .allocator = std.testing.allocator,
         .args = &.{ "zig", "build-exe", "main.zig" },
         .env = &.{
@@ -163,7 +163,7 @@ test "zjblib.Wasi WasiOptions and preopens" {
     try std.testing.expectEqualStrings("/cache", opts.preopens[2].path());
 }
 
-test "zjblib.Wasi virtual filesystem and in-memory tar mounting" {
+test "webapi.Wasi virtual filesystem and in-memory tar mounting" {
     const allocator = std.testing.allocator;
 
     var tar_buf: [2048]u8 = undefined;
@@ -173,7 +173,7 @@ test "zjblib.Wasi virtual filesystem and in-memory tar mounting" {
         "pub const ok = true;\n",
     );
 
-    const wasi = try zjblib.Wasi.init(.{
+    const wasi = try webapi.Wasi.init(.{
         .allocator = allocator,
         .args = &.{ "zig", "build-exe", "main.zig" },
         .preopens = &.{
@@ -207,10 +207,10 @@ test "zjblib.Wasi virtual filesystem and in-memory tar mounting" {
     );
 }
 
-test "zjblib.Wasi resetForNextRun preserves virtual filesystem" {
+test "webapi.Wasi resetForNextRun preserves virtual filesystem" {
     const allocator = std.testing.allocator;
 
-    const wasi = try zjblib.Wasi.init(.{
+    const wasi = try webapi.Wasi.init(.{
         .allocator = allocator,
         .args = &.{ "app", "arg1" },
         .preopens = &.{
@@ -230,10 +230,10 @@ test "zjblib.Wasi resetForNextRun preserves virtual filesystem" {
     try std.testing.expectEqualStrings("arg2", wasi.args[1]);
 }
 
-test "zjblib.Wasi removeFile and removeDirTree" {
+test "webapi.Wasi removeFile and removeDirTree" {
     const allocator = std.testing.allocator;
 
-    const wasi = try zjblib.Wasi.init(.{
+    const wasi = try webapi.Wasi.init(.{
         .allocator = allocator,
         .args = &.{"app"},
         .preopens = &.{
@@ -266,39 +266,39 @@ test "zjblib.Wasi removeFile and removeDirTree" {
     try std.testing.expect(wasi.fs.fileExists("/lib/std.zig"));
 }
 
-test "zjblib.WebAssembly Suspending and async compile/instantiate" {
+test "webapi.WebAssembly Suspending and async compile/instantiate" {
     Mock.reset();
 
     {
-        try std.testing.expect(zjblib.WebAssembly.isJspiSupported());
+        try std.testing.expect(webapi.WebAssembly.isJspiSupported());
 
-        var null_susp = zjblib.WebAssembly.Suspending.null;
+        var null_susp = webapi.WebAssembly.Suspending.null;
         try std.testing.expect(null_susp.isNull());
         null_susp.release();
         try std.testing.expect(null_susp.isNull());
 
         const fn_h = Mock.allocHandle("mock_fn");
         defer fn_h.release();
-        var susp = try zjblib.WebAssembly.Suspending.init(fn_h);
+        var susp = try webapi.WebAssembly.Suspending.init(fn_h);
         try std.testing.expect(!susp.isNull());
         susp.release();
         try std.testing.expect(susp.isNull());
 
-        const prom_h = try zjblib.WebAssembly.promising(fn_h);
+        const prom_h = try webapi.WebAssembly.promising(fn_h);
         prom_h.release();
 
         const wasm_hdr = "\x00asm\x01\x00\x00\x00";
-        const cp = try zjblib.WebAssembly.compile(wasm_hdr);
+        const cp = try webapi.WebAssembly.compile(wasm_hdr);
         cp.release();
 
-        const ip = try zjblib.WebAssembly.instantiateAsync(wasm_hdr, null);
+        const ip = try webapi.WebAssembly.instantiateAsync(wasm_hdr, null);
         ip.release();
     }
 
     try Mock.assertNoHandleLeaks();
 }
 
-test "zjblib.IndexedDb null handles and FileEntryData" {
+test "webapi.IndexedDb null handles and FileEntryData" {
     Mock.reset();
 
     try std.testing.expect(IDB.Database.null.isNull());
@@ -317,11 +317,11 @@ test "zjblib.IndexedDb null handles and FileEntryData" {
     try Mock.assertNoHandleLeaks();
 }
 
-test "zjblib.Wasi IndexedFs mount point read restore and write flush" {
+test "webapi.Wasi IndexedFs mount point read restore and write flush" {
     const allocator = std.testing.allocator;
     Mock.reset();
 
-    const wasi = try zjblib.Wasi.init(.{
+    const wasi = try webapi.Wasi.init(.{
         .allocator = allocator,
         .args = &.{"zig"},
         .preopens = &.{
@@ -351,14 +351,14 @@ test "zjblib.Wasi IndexedFs mount point read restore and write flush" {
     );
     try std.testing.expectEqualStrings(
         "o/abc",
-        zjblib.Wasi.FileSystem.indexedFsStoreKey("/cache/o/abc", "/cache").?,
+        webapi.Wasi.FileSystem.indexedFsStoreKey("/cache/o/abc", "/cache").?,
     );
     try std.testing.expectEqualStrings(
         "foo/bar",
-        zjblib.Wasi.FileSystem.indexedFsStoreKey("/foo/bar", "/").?,
+        webapi.Wasi.FileSystem.indexedFsStoreKey("/foo/bar", "/").?,
     );
     try std.testing.expect(
-        zjblib.Wasi.FileSystem.indexedFsStoreKey("/cache", "/cache") == null,
+        webapi.Wasi.FileSystem.indexedFsStoreKey("/cache", "/cache") == null,
     );
 
     try wasi.fs.putMockIndexedFsEntry("/cache/o/abc", "cached-obj", 42_000_000);
@@ -413,7 +413,7 @@ test "zjblib.Wasi IndexedFs mount point read restore and write flush" {
 
     // Exercise start, startPromise, and resetForNextRun handle cleanup
     const mock_inst = Mock.allocHandle("mock_inst");
-    wasi.setInstance(zjblib.WebAssembly.Instance.fromHandle(mock_inst));
+    wasi.setInstance(webapi.WebAssembly.Instance.fromHandle(mock_inst));
     const start_p = try wasi.startPromise();
     start_p.release();
     _ = wasi.start();
@@ -423,7 +423,7 @@ test "zjblib.Wasi IndexedFs mount point read restore and write flush" {
     try std.testing.expect(wasi.start_resolve_h.isNull());
 }
 
-test "zjblib.dom wrappers release handles without leaks" {
+test "webapi.dom wrappers release handles without leaks" {
     Mock.reset();
     {
         const perf = dom.window().performance();
@@ -441,7 +441,7 @@ test "zjblib.dom wrappers release handles without leaks" {
 
         const evt_h = Mock.allocHandle("mock_evt");
         defer evt_h.release();
-        const ev = zjblib.Event.fromHandle(evt_h);
+        const ev = webapi.Event.fromHandle(evt_h);
         ev.preventDefault();
         ev.stopPropagation();
         ev.stopImmediatePropagation();
@@ -453,7 +453,7 @@ test "zjblib.dom wrappers release handles without leaks" {
         var str_buf: [16]u8 = undefined;
         _ = ev.eventType(&str_buf);
 
-        const kb = zjblib.Event.KeyboardEvent.fromEvent(ev);
+        const kb = webapi.Event.KeyboardEvent.fromEvent(ev);
         kb.preventDefault();
         _ = kb.key(&str_buf);
         _ = kb.code(&str_buf);
@@ -464,7 +464,7 @@ test "zjblib.dom wrappers release handles without leaks" {
         _ = kb.repeat();
         _ = kb.isComposing();
 
-        const me = zjblib.Event.MouseEvent.fromEvent(ev);
+        const me = webapi.Event.MouseEvent.fromEvent(ev);
         _ = me.button();
         _ = me.buttons();
         _ = me.clientX();
@@ -472,31 +472,31 @@ test "zjblib.dom wrappers release handles without leaks" {
         _ = me.offsetX();
         _ = me.offsetY();
 
-        const pe = zjblib.Event.PointerEvent.fromMouseEvent(me);
+        const pe = webapi.Event.PointerEvent.fromMouseEvent(me);
         _ = pe.pointerId();
         _ = pe.pointerType(&str_buf);
         _ = pe.isPrimary();
         _ = pe.clientX();
 
-        const we = zjblib.Event.WheelEvent.fromEvent(ev);
+        const we = webapi.Event.WheelEvent.fromEvent(ev);
         _ = we.deltaX();
         _ = we.deltaY();
         _ = we.deltaZ();
         _ = we.deltaMode();
         _ = we.shiftKey();
 
-        const ce = zjblib.Event.ClipboardEvent.fromEvent(ev);
+        const ce = webapi.Event.ClipboardEvent.fromEvent(ev);
         const dt = ce.clipboardData();
         defer dt.release();
         if (try dt.getDataAlloc(std.testing.allocator, "text")) |data| {
             std.testing.allocator.free(data);
         }
 
-        const mqle = zjblib.Event.MediaQueryListEvent.fromEvent(ev);
+        const mqle = webapi.Event.MediaQueryListEvent.fromEvent(ev);
         _ = mqle.matches();
         _ = mqle.media(&str_buf);
 
-        const ev_ns = zjblib.Event;
+        const ev_ns = webapi.Event;
         try std.testing.expect(
             ev_ns.EventFor("keydown") == ev_ns.KeyboardEvent,
         );
@@ -528,9 +528,9 @@ test "zjblib.dom wrappers release handles without leaks" {
     try Mock.assertNoHandleLeaks();
 }
 
-test "zjblib.Wasi.FileSystem standalone lifecycle" {
+test "webapi.Wasi.FileSystem standalone lifecycle" {
     const allocator = std.testing.allocator;
-    const FS = zjblib.Wasi.FileSystem;
+    const FS = webapi.Wasi.FileSystem;
 
     try std.testing.expectEqual(@as(i32, 0), FS.STDIN_FILENO);
     try std.testing.expectEqual(@as(i32, 1), FS.STDOUT_FILENO);
@@ -574,7 +574,7 @@ test "zjblib.Wasi.FileSystem standalone lifecycle" {
     try std.testing.expect(!fs.fileExists("/cache/item.bin"));
 }
 
-test "zjblib.Promise.Typed wrappers and handle cleanup" {
+test "webapi.Promise.Typed wrappers and handle cleanup" {
     Mock.reset();
     {
         const Ctx = struct {
@@ -590,7 +590,7 @@ test "zjblib.Promise.Typed wrappers and handle cleanup" {
                 self.code_val = code;
             }
 
-            fn onMod(self: *@This(), mod: zjblib.WebAssembly.Module) void {
+            fn onMod(self: *@This(), mod: webapi.WebAssembly.Module) void {
                 if (!mod.isNull()) self.mod_calls += 1;
             }
         };
@@ -607,13 +607,13 @@ test "zjblib.Promise.Typed wrappers and handle cleanup" {
         wp.release();
 
         const p_code_h = Mock.allocHandle("mock_i32_promise");
-        const p_code = zjblib.Promise.Typed(i32).fromHandle(p_code_h);
+        const p_code = webapi.Promise.Typed(i32).fromHandle(p_code_h);
         try std.testing.expect(!p_code.isNull());
         p_code.thenFn(Ctx, &ctx, &Ctx.onCode, null);
         p_code.release();
 
         const p_mod_h = Mock.allocHandle("mock_mod_promise");
-        const p_mod = zjblib.Promise.Typed(zjblib.WebAssembly.Module)
+        const p_mod = webapi.Promise.Typed(webapi.WebAssembly.Module)
             .fromHandle(p_mod_h);
         try std.testing.expect(!p_mod.isNull());
         p_mod.thenFn(Ctx, &ctx, &Ctx.onMod, null);
@@ -622,7 +622,7 @@ test "zjblib.Promise.Typed wrappers and handle cleanup" {
     try Mock.assertNoHandleLeaks();
 }
 
-test "zjblib shared callback dispatcher and trampolines" {
+test "webapi shared callback dispatcher and trampolines" {
     Mock.reset();
     {
         const State = struct {
@@ -641,21 +641,21 @@ test "zjblib shared callback dispatcher and trampolines" {
         const target = Mock.allocHandle("mock_target");
         defer target.release();
 
-        const f1 = zjblib.boundFunction(State, &state, &State.onCall);
+        const f1 = webapi.boundFunction(State, &state, &State.onCall);
         f1.release();
-        const f2 = zjblib.boundFunctionOwned(State, &state, &State.onCall);
+        const f2 = webapi.boundFunctionOwned(State, &state, &State.onCall);
         f2.release();
-        const f3 = zjblib.boundFunction(EmptyCtx, &empty, &EmptyCtx.onEmpty);
+        const f3 = webapi.boundFunction(EmptyCtx, &empty, &EmptyCtx.onEmpty);
         f3.release();
 
-        zjblib.boundEventListener(
+        webapi.boundEventListener(
             State,
             "click",
             target,
             &State.onCall,
             &state,
         );
-        zjblib.boundEventListenerOwned(
+        webapi.boundEventListenerOwned(
             EmptyCtx,
             "click",
             target,
@@ -686,31 +686,31 @@ test "dom.Window setTimeout and setInterval typed callbacks" {
         const iid = win.setInterval(TimerCtx, &ctx, TimerCtx.onInterval, 50);
         win.clearInterval(iid);
 
-        const opened = win.open("zjblib/", "_blank");
+        const opened = win.open("webapi/", "_blank");
         if (!opened.isNull()) opened.release();
     }
     try Mock.assertNoHandleLeaks();
 }
 
-test "zjblib.dom typed event listeners via boundEventListenerTyped" {
+test "webapi.dom typed event listeners via boundEventListenerTyped" {
     Mock.reset();
     {
         const ListenerCtx = struct {
             count: u32 = 0,
 
-            fn onKey(self: *@This(), ev: zjblib.Event.KeyboardEvent) void {
+            fn onKey(self: *@This(), ev: webapi.Event.KeyboardEvent) void {
                 if (!ev.isNull()) self.count += 1;
             }
-            fn onClick(self: *@This(), ev: zjblib.Event.PointerEvent) void {
+            fn onClick(self: *@This(), ev: webapi.Event.PointerEvent) void {
                 if (!ev.isNull()) self.count += 1;
             }
             fn onChange(
                 self: *@This(),
-                ev: zjblib.Event.MediaQueryListEvent,
+                ev: webapi.Event.MediaQueryListEvent,
             ) void {
                 if (!ev.isNull()) self.count += 1;
             }
-            fn onGeneric(self: *@This(), ev: zjblib.Event) void {
+            fn onGeneric(self: *@This(), ev: webapi.Event) void {
                 if (!ev.isNull()) self.count += 1;
             }
         };

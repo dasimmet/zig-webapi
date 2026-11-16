@@ -4,12 +4,12 @@
 
 // 1. Imports
 const std = @import("std");
-const zjblib = @import("../zjblib.zig");
+const webapi = @import("../webapi.zig");
 const Event = @import("../Event.zig");
 
 // 2. Shortcuts on imports
 const InputEvent = @This();
-const zjb = zjblib.zjb;
+const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
@@ -59,7 +59,7 @@ pub fn data(self: InputEvent, buf: []u8) ?[]const u8 {
     const data_h = self.handle.get("data", zjb.Handle);
     defer data_h.release();
     if (data_h.isNull()) return null;
-    return zjblib.stringFromHandle(data_h, buf);
+    return webapi.stringFromHandle(data_h, buf);
 }
 
 /// Copies the type of change for editable content into `buf`.
@@ -69,7 +69,7 @@ pub fn inputType(self: InputEvent, buf: []u8) []const u8 {
     std.debug.assert(buf.len > 0);
     const type_h = self.handle.get("inputType", zjb.Handle);
     defer type_h.release();
-    return zjblib.stringFromHandle(type_h, buf);
+    return webapi.stringFromHandle(type_h, buf);
 }
 
 /// Returns true if the event is fired after compositionstart and before compositionend.

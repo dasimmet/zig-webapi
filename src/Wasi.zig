@@ -4,13 +4,13 @@
 //! Exposes a pure Zig WASI import object to run WebAssembly binaries inside
 //! the browser with in-memory and IndexedDb based filesystem support.
 const std = @import("std");
-const zjblib = @import("zjblib.zig");
+const webapi = @import("webapi.zig");
 /// Virtual filesystem state, open descriptors, preopens, and IndexedFs mounts.
 pub const FileSystem = @import("Wasi/FileSystem.zig");
 
 const Wasi = @This();
-const zjb = zjblib.zjb;
-const WebAssembly = zjblib.WebAssembly;
+const zjb = webapi.zjb;
+const WebAssembly = webapi.WebAssembly;
 
 allocator: std.mem.Allocator,
 args: []const []const u8,
@@ -348,7 +348,7 @@ pub fn start(self: *Wasi) i32 {
 
 /// Invokes `_start` asynchronously (using `WebAssembly.promising` if JSPI is
 /// enabled for IndexedFs mounts) and returns a Promise resolving when done.
-pub fn startPromise(self: *Wasi) !zjblib.Promise.Typed(void) {
+pub fn startPromise(self: *Wasi) !webapi.Promise.Typed(void) {
     std.debug.assert(!self.instance.isNull());
     std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
 
@@ -381,7 +381,7 @@ pub fn runWasm(self: *Wasi, wasm_bytes: []const u8) !i32 {
 pub fn runWasmAsync(
     self: *Wasi,
     wasm_bytes: []const u8,
-) !zjblib.Promise.Typed(i32) {
+) !webapi.Promise.Typed(i32) {
     std.debug.assert(wasm_bytes.len >= 4);
     std.debug.assert(std.mem.eql(u8, wasm_bytes[0..4], "\x00asm"));
 
@@ -681,7 +681,7 @@ fn startRawPromise(
     self: *Wasi,
     use_jspi: bool,
     propagate_errors: bool,
-) !zjblib.Promise.Typed(void) {
+) !webapi.Promise.Typed(void) {
     std.debug.assert(!self.instance.isNull());
     std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
 
@@ -695,7 +695,7 @@ fn startRawPromise(
     if (start_fn.isNull()) {
         exports_owned = false;
         exports_h.release();
-        return .fromHandle(zjblib.Promise.resolve(self.exit_code).handle);
+        return .fromHandle(webapi.Promise.resolve(self.exit_code).handle);
     }
 
     const run_fn = if (use_jspi) blk: {
@@ -722,9 +722,9 @@ fn startRawPromise(
     const p = prom_cls.new(.{bound_exec});
     defer p.release();
 
-    const cb_ok = zjblib.boundFunction(Wasi, self, onStartFulfilled);
+    const cb_ok = webapi.boundFunction(Wasi, self, onStartFulfilled);
     defer cb_ok.release();
-    const cb_err = zjblib.boundFunction(Wasi, self, onStartRejected);
+    const cb_err = webapi.boundFunction(Wasi, self, onStartRejected);
     defer cb_err.release();
 
     const p_caught = p.call("then", .{ cb_ok, cb_err }, zjb.Handle);
@@ -1884,7 +1884,7 @@ fn resolveErrnoPromise(wasi: *Wasi, errno: i32) zjb.Handle {
     if (!wasi.last_suspending_promise.isNull()) {
         wasi.last_suspending_promise.release();
     }
-    const p = zjblib.Promise.resolve(errno);
+    const p = webapi.Promise.resolve(errno);
     wasi.last_suspending_promise = p.handle;
     return p.handle;
 }
@@ -1929,13 +1929,13 @@ fn wasi_idb_lookup_exec(
     }
     ctx.req = req;
 
-    const cb_ok = zjblib.boundFunction(
+    const cb_ok = webapi.boundFunction(
         AsyncIdbContext,
         ctx,
         AsyncIdbContext.onSuccess,
     );
     defer cb_ok.release();
-    const cb_err = zjblib.boundFunction(
+    const cb_err = webapi.boundFunction(
         AsyncIdbContext,
         ctx,
         AsyncIdbContext.onError,

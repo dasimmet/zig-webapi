@@ -4,12 +4,12 @@
 
 // 1. Imports
 const std = @import("std");
-const zjblib = @import("../zjblib.zig");
+const webapi = @import("../webapi.zig");
 const Event = @import("../Event.zig");
 
 // 2. Shortcuts on imports
 const BeforeInstallPromptEvent = @This();
-const zjb = zjblib.zjb;
+const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle = .null,
@@ -52,20 +52,20 @@ pub fn preventDefault(self: BeforeInstallPromptEvent) void {
 
 /// Displays the deferred installation prompt and returns its Promise.
 /// https://developer.mozilla.org/en-US/docs/Web/API/BeforeInstallPromptEvent/prompt
-pub fn prompt(self: BeforeInstallPromptEvent) zjblib.Promise {
+pub fn prompt(self: BeforeInstallPromptEvent) webapi.Promise {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
-    return zjblib.Promise.fromHandle(
+    return webapi.Promise.fromHandle(
         self.handle.call("prompt", .{}, zjb.Handle),
     );
 }
 
 /// Returns the Promise resolving to the user's install choice outcome.
 /// https://developer.mozilla.org/en-US/docs/Web/API/BeforeInstallPromptEvent/userChoice
-pub fn userChoice(self: BeforeInstallPromptEvent) zjblib.Promise {
+pub fn userChoice(self: BeforeInstallPromptEvent) webapi.Promise {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
-    return zjblib.Promise.fromHandle(
+    return webapi.Promise.fromHandle(
         self.handle.get("userChoice", zjb.Handle),
     );
 }

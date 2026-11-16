@@ -1,5 +1,5 @@
 const std = @import("std");
-const zjb = @import("zjblib.zig").zjb;
+const zjb = @import("webapi.zig").zjb;
 
 /// Logs a list of zjb objects prefixed with `prefix` to the browser's `console.log`.
 pub fn log(comptime prefix: []const u8, args: anytype) void {

@@ -5,8 +5,8 @@
 //! instance creation, linear memory inspection, and export invocation.
 
 const std = @import("std");
-const zjblib = @import("zjblib.zig");
-const zjb = zjblib.zjb;
+const webapi = @import("webapi.zig");
+const zjb = webapi.zjb;
 
 const WebAssembly = @This();
 
@@ -44,7 +44,7 @@ pub const Instance = struct {
     pub fn initAsync(
         module: Module,
         import_object: ?zjb.Handle,
-    ) !zjblib.Promise.Typed(Instance) {
+    ) !webapi.Promise.Typed(Instance) {
         std.debug.assert(!module.handle.isNull());
         std.debug.assert(@backingInt(module.handle) != 0);
 
@@ -100,7 +100,7 @@ pub const Instance = struct {
 
         const exp = self.getExports();
         defer exp.release();
-        return zjblib.hasProperty(exp, fn_name);
+        return webapi.hasProperty(exp, fn_name);
     }
 
     /// Calls an exported WebAssembly function by name with typed arguments.
@@ -196,14 +196,14 @@ pub const Module = struct {
 
     /// Asynchronously compiles a WebAssembly module via `WebAssembly.compile`,
     /// safe for modules larger than 4 KiB on the browser main thread.
-    pub fn compile(bytes: []const u8) !zjblib.Promise.Typed(Module) {
+    pub fn compile(bytes: []const u8) !webapi.Promise.Typed(Module) {
         std.debug.assert(bytes.len >= 4);
         std.debug.assert(std.mem.eql(u8, bytes[0..4], "\x00asm"));
 
         const wasm_global = zjb.global("WebAssembly");
         if (wasm_global.isNull()) return error.CompileFailed;
 
-        const standalone = zjblib.createStandaloneUint8Array(bytes);
+        const standalone = webapi.createStandaloneUint8Array(bytes);
         defer standalone.release();
 
         const p = wasm_global.call("compile", .{standalone}, zjb.Handle);
@@ -245,7 +245,7 @@ pub const Suspending = struct {
 
         const wasm_global = zjb.global("WebAssembly");
         if (wasm_global.isNull()) return error.JspiNotSupported;
-        if (!zjblib.hasProperty(wasm_global, "Suspending")) {
+        if (!webapi.hasProperty(wasm_global, "Suspending")) {
             return error.JspiNotSupported;
         }
 
@@ -289,8 +289,8 @@ pub fn isJspiSupported() bool {
     std.debug.assert(@backingInt(wasm_global) != 0);
     if (wasm_global.isNull()) return false;
 
-    const has_susp = zjblib.hasProperty(wasm_global, "Suspending");
-    const has_prom = zjblib.hasProperty(wasm_global, "promising");
+    const has_susp = webapi.hasProperty(wasm_global, "Suspending");
+    const has_prom = webapi.hasProperty(wasm_global, "promising");
     std.debug.assert(!wasm_global.isNull());
     return has_susp and has_prom;
 }
@@ -328,7 +328,7 @@ pub fn validate(bytes: []const u8) bool {
 }
 
 /// Asynchronously compiles WebAssembly bytes via `WebAssembly.compile`.
-pub fn compile(bytes: []const u8) !zjblib.Promise.Typed(Module) {
+pub fn compile(bytes: []const u8) !webapi.Promise.Typed(Module) {
     std.debug.assert(bytes.len >= 4);
     std.debug.assert(std.mem.eql(u8, bytes[0..4], "\x00asm"));
     return Module.compile(bytes);
@@ -356,14 +356,14 @@ pub fn instantiate(
 pub fn instantiateAsync(
     wasm_bytes: []const u8,
     import_object: ?zjb.Handle,
-) !zjblib.Promise.Typed(ResultObject) {
+) !webapi.Promise.Typed(ResultObject) {
     std.debug.assert(wasm_bytes.len >= 4);
     std.debug.assert(std.mem.eql(u8, wasm_bytes[0..4], "\x00asm"));
 
     const wasm_global = zjb.global("WebAssembly");
     if (wasm_global.isNull()) return error.InstantiateFailed;
 
-    const standalone = zjblib.createStandaloneUint8Array(wasm_bytes);
+    const standalone = webapi.createStandaloneUint8Array(wasm_bytes);
     defer standalone.release();
 
     const imp = if (import_object) |h|
@@ -378,7 +378,7 @@ pub fn instantiateAsync(
         zjb.Handle,
     );
     if (p.isNull()) return error.InstantiateFailed;
-    return .{ .promise = zjblib.Promise.fromHandle(p) };
+    return .{ .promise = webapi.Promise.fromHandle(p) };
 }
 
 pub const ResultObject = struct {

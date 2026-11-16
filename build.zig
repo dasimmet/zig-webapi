@@ -25,8 +25,8 @@ pub fn build(b: *std.Build) void {
 
     const zjb_module = b.dependency("javascript_bridge", .{}).module("zjb");
 
-    _ = b.addModule("zjblib", .{
-        .root_source_file = b.path("src/zjblib.zig"),
+    _ = b.addModule("webapi", .{
+        .root_source_file = b.path("src/webapi.zig"),
         .imports = &.{
             .{
                 .name = "zjb",

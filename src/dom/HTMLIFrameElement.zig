@@ -3,7 +3,7 @@
 
 // 1. Imports
 const std = @import("std");
-const zjblib = @import("../zjblib.zig");
+const webapi = @import("../webapi.zig");
 const CSSStyleDeclaration = @import("CSSStyleDeclaration.zig");
 const Document = @import("Document.zig");
 const Element = @import("Element.zig");
@@ -11,7 +11,7 @@ const Window = @import("Window.zig");
 
 // 2. Shortcuts on imports
 const HTMLIFrameElement = @This();
-const zjb = zjblib.zjb;
+const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
@@ -78,7 +78,7 @@ pub fn getSrc(self: HTMLIFrameElement, buf: []u8) []const u8 {
     const src_h = self.handle.get("src", zjb.Handle);
     defer src_h.release();
     if (src_h.isNull()) return "";
-    return zjblib.stringFromHandle(src_h, buf);
+    return webapi.stringFromHandle(src_h, buf);
 }
 
 /// Allocates and returns the `src` URL property of the iframe.
@@ -91,7 +91,7 @@ pub fn getSrcAlloc(
     std.debug.assert(@backingInt(self.handle) != 0);
     const src_h = self.handle.get("src", zjb.Handle);
     defer src_h.release();
-    return zjblib.stringFromHandleAlloc(alloc, src_h);
+    return webapi.stringFromHandleAlloc(alloc, src_h);
 }
 
 /// Returns the Document object inside the iframe, or null if unavailable.
@@ -120,13 +120,13 @@ pub fn contentWindow(self: HTMLIFrameElement) ?Window {
     return .{ .handle = win_h };
 }
 
-/// Attaches a context-bound listener receiving `zjblib.Event.EventFor(event)`.
+/// Attaches a context-bound listener receiving `webapi.Event.EventFor(event)`.
 pub fn addEventListener(
     self: HTMLIFrameElement,
     comptime event: []const u8,
     comptime Context: type,
     context: *Context,
-    comptime f: *const fn (*Context, zjblib.Event.EventFor(event)) void,
+    comptime f: *const fn (*Context, webapi.Event.EventFor(event)) void,
 ) void {
     self.asElement().addEventListener(event, Context, context, f);
 }

@@ -1,8 +1,8 @@
 //! Type-safe wrapper for a browser `BroadcastChannel`.
 //! https://developer.mozilla.org/en-US/docs/Web/API/BroadcastChannel
 const std = @import("std");
-const zjblib = @import("zjblib.zig");
-const zjb = zjblib.zjb;
+const webapi = @import("webapi.zig");
+const zjb = webapi.zjb;
 
 const BroadcastChannel = @This();
 
@@ -48,7 +48,7 @@ pub fn addEventListener(
     ctx: *T,
     f: *const fn (*T, zjb.Handle) void,
 ) void {
-    zjblib.boundEventListener(T, event, self.handle, f, ctx);
+    webapi.boundEventListener(T, event, self.handle, f, ctx);
 }
 
 pub fn addEventListenerOwned(
@@ -58,5 +58,5 @@ pub fn addEventListenerOwned(
     ctx: *T,
     f: *const fn (*T, zjb.Handle) void,
 ) void {
-    zjblib.boundEventListenerOwned(T, event, self.handle, f, ctx);
+    webapi.boundEventListenerOwned(T, event, self.handle, f, ctx);
 }

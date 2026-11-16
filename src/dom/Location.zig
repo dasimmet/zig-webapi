@@ -3,11 +3,11 @@
 
 // 1. Imports
 const std = @import("std");
-const zjblib = @import("../zjblib.zig");
+const webapi = @import("../webapi.zig");
 
 // 2. Shortcuts on imports
 const Location = @This();
-const zjb = zjblib.zjb;
+const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
@@ -81,5 +81,5 @@ fn readStringProp(self: Location, comptime prop: []const u8, buf: []u8) []u8 {
     const h = self.handle.get(prop, zjb.Handle);
     if (h.isNull()) return "";
     defer h.release();
-    return zjblib.stringFromHandle(h, buf);
+    return webapi.stringFromHandle(h, buf);
 }

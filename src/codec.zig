@@ -1,5 +1,5 @@
 const std = @import("std");
-const zjb = @import("zjblib.zig").zjb;
+const zjb = @import("webapi.zig").zjb;
 
 var _codec: ?struct {
     encoder: zjb.Handle,

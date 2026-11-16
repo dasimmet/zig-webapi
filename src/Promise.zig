@@ -2,8 +2,8 @@
 //! https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise
 
 const std = @import("std");
-const zjblib = @import("zjblib.zig");
-const zjb = zjblib.zjb;
+const webapi = @import("webapi.zig");
+const zjb = webapi.zjb;
 
 const Promise = @This();
 
@@ -77,12 +77,12 @@ pub fn thenFn(
     std.debug.assert(@intFromPtr(ctx) != 0);
 
     const cb_ok: zjb.Handle = if (on_ok) |ono|
-        zjblib.boundFunction(Context, ctx, ono)
+        webapi.boundFunction(Context, ctx, ono)
     else
         .null;
     defer if (!cb_ok.isNull()) cb_ok.release();
     const cb_err: zjb.Handle = if (on_err) |one|
-        zjblib.boundFunction(Context, ctx, one)
+        webapi.boundFunction(Context, ctx, one)
     else
         .null;
     defer if (!cb_err.isNull()) cb_err.release();

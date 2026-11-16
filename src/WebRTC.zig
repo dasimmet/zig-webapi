@@ -6,8 +6,8 @@
 //! configuration structures (`RTCConfiguration`, `RTCIceServer`).
 
 const std = @import("std");
-const zjblib = @import("zjblib.zig");
-const zjb = zjblib.zjb;
+const webapi = @import("webapi.zig");
+const zjb = webapi.zjb;
 
 /// Representation of an ICE server configuration in WebRTC (RTCIceServer).
 /// https://developer.mozilla.org/en-US/docs/Web/API/RTCIceServer
@@ -117,7 +117,7 @@ pub const RTCDataChannel = struct {
         const rs_h = self.readyState();
         defer rs_h.release();
         var buf: [16]u8 = undefined;
-        const s = zjblib.stringFromHandle(rs_h, &buf);
+        const s = webapi.stringFromHandle(rs_h, &buf);
         return std.mem.eql(u8, s, "open");
     }
 
@@ -128,7 +128,7 @@ pub const RTCDataChannel = struct {
         ctx: *T,
         f: *const fn (*T, zjb.Handle) void,
     ) void {
-        zjblib.boundEventListener(T, event, self.handle, f, ctx);
+        webapi.boundEventListener(T, event, self.handle, f, ctx);
     }
 
     pub fn addEventListenerOwned(
@@ -138,7 +138,7 @@ pub const RTCDataChannel = struct {
         ctx: *T,
         f: *const fn (*T, zjb.Handle) void,
     ) void {
-        zjblib.boundEventListenerOwned(T, event, self.handle, f, ctx);
+        webapi.boundEventListenerOwned(T, event, self.handle, f, ctx);
     }
 };
 
@@ -292,7 +292,7 @@ pub const RTCPeerConnection = struct {
         if (h.isNull()) return .unknown;
         defer h.release();
         var buf: [32]u8 = undefined;
-        const s = zjblib.stringFromHandle(h, &buf);
+        const s = webapi.stringFromHandle(h, &buf);
         return ConnectionState.fromString(s);
     }
 
@@ -302,7 +302,7 @@ pub const RTCPeerConnection = struct {
         if (h.isNull()) return .unknown;
         defer h.release();
         var buf: [32]u8 = undefined;
-        const s = zjblib.stringFromHandle(h, &buf);
+        const s = webapi.stringFromHandle(h, &buf);
         return IceConnectionState.fromString(s);
     }
 
@@ -312,7 +312,7 @@ pub const RTCPeerConnection = struct {
         if (h.isNull()) return .unknown;
         defer h.release();
         var buf: [32]u8 = undefined;
-        const s = zjblib.stringFromHandle(h, &buf);
+        const s = webapi.stringFromHandle(h, &buf);
         return SignalingState.fromString(s);
     }
 
@@ -322,7 +322,7 @@ pub const RTCPeerConnection = struct {
         if (h.isNull()) return .unknown;
         defer h.release();
         var buf: [32]u8 = undefined;
-        const s = zjblib.stringFromHandle(h, &buf);
+        const s = webapi.stringFromHandle(h, &buf);
         return IceGatheringState.fromString(s);
     }
 
@@ -339,7 +339,7 @@ pub const RTCPeerConnection = struct {
         ctx: *T,
         f: *const fn (*T, zjb.Handle) void,
     ) void {
-        zjblib.boundEventListener(T, event, self.handle, f, ctx);
+        webapi.boundEventListener(T, event, self.handle, f, ctx);
     }
 
     pub fn addEventListenerOwned(
@@ -349,7 +349,7 @@ pub const RTCPeerConnection = struct {
         ctx: *T,
         f: *const fn (*T, zjb.Handle) void,
     ) void {
-        zjblib.boundEventListenerOwned(T, event, self.handle, f, ctx);
+        webapi.boundEventListenerOwned(T, event, self.handle, f, ctx);
     }
 };
 

@@ -1,8 +1,8 @@
-# zjblib
+# webapi
 
-High-level, type-safe WebAssembly browser and WASI API wrappers built on top of [`zig-javascript-bridge`](https://github.com/dasimmet/zig-javascript-bridge) (`zjb`).
+Type-safe Zig WebAssembly browser and WASI API wrappers around [`zig-javascript-bridge`](https://github.com/scottredig/zig-javascript-bridge) (`zjb`).
 
-`zjblib` lets Zig WebAssembly applications interact with DOM APIs, events, WebGL, Fetch, Promises, IndexedDB, WebRTC, WebSockets, BroadcastChannel, WebAssembly/JSPI, and a pure-Zig WASI Snapshot Preview 1 runtime without writing custom JavaScript glue or relying on global callback singletons.
+`webapi` lets Zig WebAssembly applications interact with DOM APIs, events, WebGL, Fetch, Promises, IndexedDB, WebRTC, WebSockets, BroadcastChannel, WebAssembly/JSPI, and a pure-Zig WASI Snapshot Preview 1 runtime without writing custom JavaScript glue or relying on global callback singletons.
 
 ## Requirements
 
@@ -11,33 +11,33 @@ High-level, type-safe WebAssembly browser and WASI API wrappers built on top of 
 
 ## Modules
 
-All modules are re-exported from [`src/zjblib.zig`](src/zjblib.zig):
+All modules are re-exported from [`src/webapi.zig`](src/webapi.zig):
 
 | Module / Symbol | Source | Purpose |
 | --- | --- | --- |
-| `zjblib` (root) | [`src/zjblib.zig`](src/zjblib.zig) | Zero-allocation string extraction (`stringFromHandle`, `stringFromHandles`), allocating helpers (`stringFromHandleAlloc`, `bytesFromHandleAlloc`, `createStandaloneUint8Array`), context-bound callbacks (`boundFunction`, `boundEventListener`, `boundEventListenerTyped`), Web Crypto PRNG (`PseudoRandomNumberGenerator`), `constTagName`, `getUri`, `retainHandle`, `hasProperty`, `callAsync`. |
-| `zjblib.zjb` | [`src/zjblib.zig`](src/zjblib.zig) | Resolves to `@import("zjb")` on WASM targets and [`src/testing/zjb.zig`](src/testing/zjb.zig) on host targets. |
-| `zjblib.codec` | [`src/codec.zig`](src/codec.zig) | Cached singleton JS `TextEncoder` / `TextDecoder` helpers (`encode`, `decode`). |
-| `zjblib.console` | [`src/console.zig`](src/console.zig) | Browser console logging (`log`, `debug`, `@"error"`) and `rootLogFn` for `std.Options.logFn`. |
-| `zjblib.dom` | [`src/dom.zig`](src/dom.zig) | Typed DOM wrappers: `Document`, `Window`, `Element`, `CSSStyleDeclaration`, `TokenList`, `DOMRect`, `Location`, `History`, `Navigator`, `Clipboard`, `Performance`, `MediaQueryList`, `VisualViewport`, `DataTransfer`, `HTMLIFrameElement`, `ServiceWorker`, `ServiceWorkerContainer`, `ServiceWorkerRegistration`. |
-| `zjblib.Event` | [`src/Event.zig`](src/Event.zig) | Base `Event` wrapper and compile-time `EventFor(name)` mapping to `KeyboardEvent`, `PointerEvent`, `MouseEvent`, `WheelEvent`, `InputEvent`, `ClipboardEvent`, `FocusEvent`, `SubmitEvent`, `TouchEvent`, `HashChangeEvent`, `PopStateEvent`, `MediaQueryListEvent`, and `BeforeInstallPromptEvent`. |
-| `zjblib.Promise` | [`src/Promise.zig`](src/Promise.zig) | `Promise` and `Promise.Typed(T)` wrappers with context-bound `.thenFn(...)`. |
-| `zjblib.Fetch` / `zjblib.fetch` | [`src/Fetch.zig`](src/Fetch.zig) | Browser Fetch API: `fetch`, `Headers`, `RequestInit`, and `Response`. |
-| `zjblib.download` | [`src/download.zig`](src/download.zig) | Trigger browser file downloads from raw byte slices (`download.bytes`). |
-| `zjblib.WebGL` | [`src/WebGL.zig`](src/WebGL.zig) | WebGL2 / WebGL rendering context, buffers, textures, shaders/programs (`createProgramFromSource`), uniforms (`uploadMat4`, etc.), framebuffers, VAOs, and draw calls. |
-| `zjblib.IndexedDb` | [`src/IndexedDb.zig`](src/IndexedDb.zig) | Context-bound async `IndexedDB` wrapper (`open`, `Database`, `Transaction`, `ObjectStore`, `loadAllEntries`) using detached `Uint8Array` copies safe across WASM memory growth. |
-| `zjblib.WebRTC` | [`src/WebRTC.zig`](src/WebRTC.zig) | `RTCPeerConnection`, `RTCDataChannel`, `RTCSessionDescription`, `RTCIceCandidate`, `RTCConfiguration`, and `RTCIceServer`. |
-| `zjblib.WebSocket` | [`src/WebSocket.zig`](src/WebSocket.zig) | `WebSocket` wrapper with `ReadyState` and typed listener attachment. |
-| `zjblib.BroadcastChannel` | [`src/BroadcastChannel.zig`](src/BroadcastChannel.zig) | Cross-tab / worker `BroadcastChannel` wrapper. |
-| `zjblib.WebAssembly` | [`src/WebAssembly.zig`](src/WebAssembly.zig) | `Module`, `Instance`, `Memory`, `validate`, `compile`, `instantiate`, `instantiateAsync`, and JSPI (`Suspending`, `isJspiSupported`, `promising`). |
-| `zjblib.Wasi` | [`src/Wasi.zig`](src/Wasi.zig) | Pure-Zig WASI Snapshot Preview 1 runtime for running WASM binaries in the browser with in-memory, `.tar`, and `IndexedDb`-backed filesystems ([`src/Wasi/FileSystem.zig`](src/Wasi/FileSystem.zig)). |
-| `zjblib.testing` | [`src/testing.zig`](src/testing.zig) | Host-side unit tests and handle-leak checks powered by [`src/testing/zjb.zig`](src/testing/zjb.zig). |
+| `webapi` (root) | [`src/webapi.zig`](src/webapi.zig) | Zero-allocation string extraction (`stringFromHandle`, `stringFromHandles`), allocating helpers (`stringFromHandleAlloc`, `bytesFromHandleAlloc`, `createStandaloneUint8Array`), context-bound callbacks (`boundFunction`, `boundEventListener`, `boundEventListenerTyped`), Web Crypto PRNG (`PseudoRandomNumberGenerator`), `constTagName`, `getUri`, `retainHandle`, `hasProperty`, `callAsync`. |
+| `webapi.zjb` | [`src/webapi.zig`](src/webapi.zig) | Resolves to `@import("zjb")` on WASM targets and [`src/testing/zjb.zig`](src/testing/zjb.zig) on host targets. |
+| `webapi.codec` | [`src/codec.zig`](src/codec.zig) | Cached singleton JS `TextEncoder` / `TextDecoder` helpers (`encode`, `decode`). |
+| `webapi.console` | [`src/console.zig`](src/console.zig) | Browser console logging (`log`, `debug`, `@"error"`) and `rootLogFn` for `std.Options.logFn`. |
+| `webapi.dom` | [`src/dom.zig`](src/dom.zig) | Typed DOM wrappers: `Document`, `Window`, `Element`, `CSSStyleDeclaration`, `TokenList`, `DOMRect`, `Location`, `History`, `Navigator`, `Clipboard`, `Performance`, `MediaQueryList`, `VisualViewport`, `DataTransfer`, `HTMLIFrameElement`, `ServiceWorker`, `ServiceWorkerContainer`, `ServiceWorkerRegistration`. |
+| `webapi.Event` | [`src/Event.zig`](src/Event.zig) | Base `Event` wrapper and compile-time `EventFor(name)` mapping to `KeyboardEvent`, `PointerEvent`, `MouseEvent`, `WheelEvent`, `InputEvent`, `ClipboardEvent`, `FocusEvent`, `SubmitEvent`, `TouchEvent`, `HashChangeEvent`, `PopStateEvent`, `MediaQueryListEvent`, and `BeforeInstallPromptEvent`. |
+| `webapi.Promise` | [`src/Promise.zig`](src/Promise.zig) | `Promise` and `Promise.Typed(T)` wrappers with context-bound `.thenFn(...)`. |
+| `webapi.Fetch` / `webapi.fetch` | [`src/Fetch.zig`](src/Fetch.zig) | Browser Fetch API: `fetch`, `Headers`, `RequestInit`, and `Response`. |
+| `webapi.download` | [`src/download.zig`](src/download.zig) | Trigger browser file downloads from raw byte slices (`download.bytes`). |
+| `webapi.WebGL` | [`src/WebGL.zig`](src/WebGL.zig) | WebGL2 / WebGL rendering context, buffers, textures, shaders/programs (`createProgramFromSource`), uniforms (`uploadMat4`, etc.), framebuffers, VAOs, and draw calls. |
+| `webapi.IndexedDb` | [`src/IndexedDb.zig`](src/IndexedDb.zig) | Context-bound async `IndexedDB` wrapper (`open`, `Database`, `Transaction`, `ObjectStore`, `loadAllEntries`) using detached `Uint8Array` copies safe across WASM memory growth. |
+| `webapi.WebRTC` | [`src/WebRTC.zig`](src/WebRTC.zig) | `RTCPeerConnection`, `RTCDataChannel`, `RTCSessionDescription`, `RTCIceCandidate`, `RTCConfiguration`, and `RTCIceServer`. |
+| `webapi.WebSocket` | [`src/WebSocket.zig`](src/WebSocket.zig) | `WebSocket` wrapper with `ReadyState` and typed listener attachment. |
+| `webapi.BroadcastChannel` | [`src/BroadcastChannel.zig`](src/BroadcastChannel.zig) | Cross-tab / worker `BroadcastChannel` wrapper. |
+| `webapi.WebAssembly` | [`src/WebAssembly.zig`](src/WebAssembly.zig) | `Module`, `Instance`, `Memory`, `validate`, `compile`, `instantiate`, `instantiateAsync`, and JSPI (`Suspending`, `isJspiSupported`, `promising`). |
+| `webapi.Wasi` | [`src/Wasi.zig`](src/Wasi.zig) | Pure-Zig WASI Snapshot Preview 1 runtime for running WASM binaries in the browser with in-memory, `.tar`, and `IndexedDb`-backed filesystems ([`src/Wasi/FileSystem.zig`](src/Wasi/FileSystem.zig)). |
+| `webapi.testing` | [`src/testing.zig`](src/testing.zig) | Host-side unit tests and handle-leak checks powered by [`src/testing/zjb.zig`](src/testing/zjb.zig). |
 
 ## Quick Start
 
-### 1. Add `zjblib` to `build.zig.zon`
+### 1. Add `webapi` to `build.zig.zon`
 
-Reference `zjblib` via `zig fetch --save=zjblib <url>` or a local path:
+Reference `webapi` via `zig fetch --save=webapi <url>` or a local path:
 
 ```zig
 .{
@@ -45,8 +45,8 @@ Reference `zjblib` via `zig fetch --save=zjblib <url>` or a local path:
     .version = "0.0.1",
     .minimum_zig_version = "0.17.1",
     .dependencies = .{
-        .zjblib = .{
-            .path = "../zjblib",
+        .webapi = .{
+            .path = "../webapi",
         },
     },
     .paths = .{ "build.zig", "build.zig.zon", "src", "static" },
@@ -55,11 +55,11 @@ Reference `zjblib` via `zig fetch --save=zjblib <url>` or a local path:
 
 ### 2. Configure `build.zig`
 
-`zjblib` exports both the `"zjblib"` Zig module (with `"zjb"` already wired in) and a `bindgen` helper that generates the matching JavaScript `Zjb` class from your compiled `.wasm` binary:
+`webapi` exports both the `"webapi"` Zig module (with `"zjb"` already wired in) and a `bindgen` helper that generates the matching JavaScript `Zjb` class from your compiled `.wasm` binary:
 
 ```zig
 const std = @import("std");
-const zjblib_pkg = @import("zjblib");
+const webapi_pkg = @import("webapi");
 
 pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
@@ -70,7 +70,7 @@ pub fn build(b: *std.Build) void {
         },
     });
 
-    const zjblib_mod = b.dependency("zjblib", .{}).module("zjblib");
+    const webapi_mod = b.dependency("webapi", .{}).module("webapi");
 
     const exe = b.addExecutable(.{
         .name = "app",
@@ -80,13 +80,13 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
             .strip = false,
             .imports = &.{
-                .{ .name = "zjblib", .module = zjblib_mod },
+                .{ .name = "webapi", .module = webapi_mod },
             },
         }),
     });
     exe.rdynamic = true;
 
-    const zjb_bindings = zjblib_pkg.bindgen(b, .{
+    const zjb_bindings = webapi_pkg.bindgen(b, .{
         .wasm = exe.getEmittedBin(),
         .basename = "zjb_bindings.js",
         .classname = "Zjb",
@@ -103,14 +103,14 @@ pub fn build(b: *std.Build) void {
 
 ```zig
 const std = @import("std");
-const zjblib = @import("zjblib");
+const webapi = @import("webapi");
 
-const dom = zjblib.dom;
-const Event = zjblib.Event;
-const zjb = zjblib.zjb;
+const dom = webapi.dom;
+const Event = webapi.Event;
+const zjb = webapi.zjb;
 
 pub const std_options: std.Options = .{
-    .logFn = zjblib.console.rootLogFn,
+    .logFn = webapi.console.rootLogFn,
     .log_level = .debug,
 };
 
@@ -180,7 +180,7 @@ zig build test
 
 A complete interactive browser example lives in [`example/`](example/):
 
-- [`example/build.zig`](example/build.zig) & [`example/build.zig.zon`](example/build.zig.zon) — standalone package configuration consuming `zjblib` via `.path = ".."`.
+- [`example/build.zig`](example/build.zig) & [`example/build.zig.zon`](example/build.zig.zon) — standalone package configuration consuming `webapi` via `.path = ".."`.
 - [`example/src/main.zig`](example/src/main.zig) — demonstrates `console.rootLogFn`, `PseudoRandomNumberGenerator`, `WebGL`, `requestAnimationFrame` with `boundFunction`, typed `PointerEvent` / `InputEvent` / `KeyboardEvent` listeners, `fetch` + `Promise.Typed(Response)`, `Location.getHref`, and `download.bytes`.
 - [`example/static/`](example/static/) — HTML, CSS, ES6 module bootstrap, and `data.json`.
 

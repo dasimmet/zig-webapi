@@ -4,13 +4,13 @@
 
 // 1. Imports
 const std = @import("std");
-const zjblib = @import("../zjblib.zig");
+const webapi = @import("../webapi.zig");
 const Element = @import("../dom/Element.zig");
 const Event = @import("../Event.zig");
 
 // 2. Shortcuts on imports
 const SubmitEvent = @This();
-const zjb = zjblib.zjb;
+const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,

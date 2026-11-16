@@ -3,13 +3,13 @@
 
 // 1. Imports
 const std = @import("std");
-const zjblib = @import("../zjblib.zig");
+const webapi = @import("../webapi.zig");
 const Clipboard = @import("Clipboard.zig");
 const ServiceWorkerContainer = @import("ServiceWorkerContainer.zig");
 
 // 2. Shortcuts on imports
 const Navigator = @This();
-const zjb = zjblib.zjb;
+const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,

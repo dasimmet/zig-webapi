@@ -442,8 +442,8 @@ fn contextTrampoline(comptime Context: type) CallbackTrampoline {
 }
 
 /// Shared callback dispatcher across all context types.
-/// Exports at most two C-ABI entry points total (`zjblib_callback` and
-/// `zjblib_callback_owned`), delegating type recovery to `contextTrampoline`.
+/// Exports at most two C-ABI entry points total (`webapi_callback` and
+/// `webapi_callback_owned`), delegating type recovery to `contextTrampoline`.
 fn callback(comptime owned: bool) zjb.ConstHandle {
     const Dispatcher = struct {
         fn call(
@@ -470,7 +470,7 @@ fn callback(comptime owned: bool) zjb.ConstHandle {
     };
 
     return zjb.fnHandle(
-        if (owned) "zjblib_callback_owned" else "zjblib_callback",
+        if (owned) "webapi_callback_owned" else "webapi_callback",
         &Dispatcher.call,
     );
 }

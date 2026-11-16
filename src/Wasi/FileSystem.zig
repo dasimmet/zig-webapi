@@ -3,10 +3,10 @@
 
 const std = @import("std");
 const builtin = @import("builtin");
-const zjblib = @import("../zjblib.zig");
+const webapi = @import("../webapi.zig");
 
 const FileSystem = @This();
-const zjb = zjblib.zjb;
+const zjb = webapi.zjb;
 
 allocator: std.mem.Allocator,
 preopens: []const []const u8,
@@ -343,7 +343,7 @@ pub fn addIndexedFsMountPoint(
         .mount_index = index,
     };
 
-    zjblib.IndexedDb.open(
+    webapi.IndexedDb.open(
         IndexedFsOpenContext,
         self.allocator,
         .{
@@ -592,7 +592,7 @@ pub fn applyIdbResult(
     std.debug.assert(@intFromPtr(self) != 0);
 
     if (!result_h.isNull()) {
-        if (zjblib.IndexedDb.ObjectStore.decodeFileEntry(
+        if (webapi.IndexedDb.ObjectStore.decodeFileEntry(
             self.allocator,
             result_h,
             self.nextTimestampNs(),
@@ -868,7 +868,7 @@ pub const ActiveIndexedFsMountPoint = struct {
     dir_path: []const u8,
     db_name: []const u8,
     store_name: []const u8,
-    db: zjblib.IndexedDb.Database = .null,
+    db: webapi.IndexedDb.Database = .null,
     checked_paths: std.StringHashMap(void),
     mock_entries: std.StringHashMap(FileEntry),
     is_ready: bool = false,
@@ -943,7 +943,7 @@ const IndexedFsOpenContext = struct {
 
     pub fn onUpgrade(
         self: *IndexedFsOpenContext,
-        db: zjblib.IndexedDb.Database,
+        db: webapi.IndexedDb.Database,
         _: u32,
         _: u32,
     ) void {
@@ -958,7 +958,7 @@ const IndexedFsOpenContext = struct {
 
     fn finish(
         self: *IndexedFsOpenContext,
-        opt_db: ?zjblib.IndexedDb.Database,
+        opt_db: ?webapi.IndexedDb.Database,
     ) void {
         std.debug.assert(@intFromPtr(self) != 0);
         std.debug.assert(@intFromPtr(self.fs) != 0);
@@ -980,7 +980,7 @@ const IndexedFsOpenContext = struct {
 
     pub fn onSuccess(
         self: *IndexedFsOpenContext,
-        db: zjblib.IndexedDb.Database,
+        db: webapi.IndexedDb.Database,
     ) void {
         std.debug.assert(@intFromPtr(self) != 0);
         std.debug.assert(!db.isNull());

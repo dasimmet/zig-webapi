@@ -5,12 +5,12 @@
 
 // 1. Imports
 const std = @import("std");
-const zjblib = @import("../zjblib.zig");
+const webapi = @import("../webapi.zig");
 const Event = @import("../Event.zig");
 
 // 2. Shortcuts on imports
 const KeyboardEvent = @This();
-const zjb = zjblib.zjb;
+const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
@@ -59,7 +59,7 @@ pub fn key(self: KeyboardEvent, buf: []u8) []const u8 {
     std.debug.assert(buf.len > 0);
     const key_h = self.handle.get("key", zjb.Handle);
     defer key_h.release();
-    return zjblib.stringFromHandle(key_h, buf);
+    return webapi.stringFromHandle(key_h, buf);
 }
 
 /// Copies the physical key code on the keyboard (e.g. "KeyA", "Backspace").
@@ -69,7 +69,7 @@ pub fn code(self: KeyboardEvent, buf: []u8) []const u8 {
     std.debug.assert(buf.len > 0);
     const code_h = self.handle.get("code", zjb.Handle);
     defer code_h.release();
-    return zjblib.stringFromHandle(code_h, buf);
+    return webapi.stringFromHandle(code_h, buf);
 }
 
 /// Returns true if the Control key was active when the key event occurred.

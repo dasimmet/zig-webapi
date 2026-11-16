@@ -1,6 +1,6 @@
 {
-  "library": "zjblib",
-  "message": "Hello from static data.json fetched via zjblib.fetch()!",
+  "library": "webapi",
+  "message": "Hello from static data.json fetched via webapi.fetch()!",
   "features": [
     "DOM & Typed Events",
     "WebGL2 / WebGL",

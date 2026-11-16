@@ -3,11 +3,11 @@
 
 // 1. Imports
 const std = @import("std");
-const zjblib = @import("../zjblib.zig");
+const webapi = @import("../webapi.zig");
 
 // 2. Shortcuts on imports
 const DataTransfer = @This();
-const zjb = zjblib.zjb;
+const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
@@ -40,7 +40,7 @@ pub fn getDataAlloc(
         return null;
     }
     defer text_h.release();
-    const enc = zjblib.codec.encode(text_h);
+    const enc = webapi.codec.encode(text_h);
     defer enc.release();
-    return try zjblib.deref(allocator, enc);
+    return try webapi.deref(allocator, enc);
 }

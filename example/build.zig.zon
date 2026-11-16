@@ -1,10 +1,10 @@
 .{
-    .name = .zjblib_example,
+    .name = .webapi_example,
     .version = "0.0.1",
-    .fingerprint = 0x6309791ab7a5831a,
+    .fingerprint = 0x61f9a58cd2422420,
     .minimum_zig_version = "0.17.1",
     .dependencies = .{
-        .zjblib = .{
+        .webapi = .{
             .path = "..",
         },
     },

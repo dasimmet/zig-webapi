@@ -1,17 +1,17 @@
 const std = @import("std");
-const zjblib = @import("zjblib");
+const webapi = @import("webapi");
 
 const vertex_shader_src = @embedFile("shaders/triangle.vert");
 const fragment_shader_src = @embedFile("shaders/triangle.frag");
 
-const dom = zjblib.dom;
-const Event = zjblib.Event;
-const Fetch = zjblib.Fetch;
-const WebGL = zjblib.WebGL;
-const zjb = zjblib.zjb;
+const dom = webapi.dom;
+const Event = webapi.Event;
+const Fetch = webapi.Fetch;
+const WebGL = webapi.WebGL;
+const zjb = webapi.zjb;
 
 pub const std_options: std.Options = .{
-    .logFn = zjblib.console.rootLogFn,
+    .logFn = webapi.console.rootLogFn,
     .log_level = .debug,
 };
 
@@ -25,7 +25,7 @@ pub fn main(init: std.process.Init.Minimal) !void {
     app.bindUi();
     dom.window().requestAnimationFrame(app.frame_cb);
 
-    std.log.info("zjblib example initialized!", .{});
+    std.log.info("webapi example initialized!", .{});
 }
 
 const App = struct {
@@ -81,7 +81,7 @@ const App = struct {
 
         self.* = .{
             .allocator = allocator,
-            .prng = zjblib.PseudoRandomNumberGenerator(),
+            .prng = webapi.PseudoRandomNumberGenerator(),
             .canvas = canvas,
             .gl = gl,
             .program = program,
@@ -91,7 +91,7 @@ const App = struct {
             .u_tint = u_tint,
             .frame_cb = .null,
         };
-        self.frame_cb = zjblib.boundFunction(App, self, onFrame);
+        self.frame_cb = webapi.boundFunction(App, self, onFrame);
         return self;
     }
 
@@ -153,7 +153,7 @@ const App = struct {
 
     fn onFetchClick(self: *App, _: Event.PointerEvent) void {
         dom.document().setElemText("fetch-output", "Fetching data.json...");
-        const req = zjblib.fetch("data.json", null);
+        const req = webapi.fetch("data.json", null);
         defer req.release();
         req.thenFn(App, self, onFetchResponse, onFetchError);
     }
@@ -176,12 +176,12 @@ const App = struct {
 
     fn onFetchText(_: *App, text_h: zjb.Handle) void {
         var buf: [4096]u8 = undefined;
-        const body = zjblib.stringFromHandle(text_h, &buf);
+        const body = webapi.stringFromHandle(text_h, &buf);
         dom.document().setElemText("fetch-output", body);
     }
 
     fn onFetchError(_: *App, err_h: zjb.Handle) void {
-        zjblib.console.@"error"("Fetch failed:", .{err_h});
+        webapi.console.@"error"("Fetch failed:", .{err_h});
         dom.document().setElemText("fetch-output", "Fetch failed (see console).");
     }
 
@@ -189,12 +189,12 @@ const App = struct {
         var buf: [256]u8 = undefined;
         const report = std.fmt.bufPrint(
             &buf,
-            "zjblib example report\nclicks={d}\ntint=({d:.2}, {d:.2}, {d:.2})\n",
+            "webapi example report\nclicks={d}\ntint=({d:.2}, {d:.2}, {d:.2})\n",
             .{ self.click_count, self.tint[0], self.tint[1], self.tint[2] },
         ) catch return;
-        zjblib.download.bytes(.{
+        webapi.download.bytes(.{
             .bytes = report,
-            .filename = "zjblib-report.txt",
+            .filename = "webapi-report.txt",
             .mimetype = "text/plain",
         });
     }

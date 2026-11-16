@@ -1,7 +1,7 @@
 .{
-    .name = .zjblib,
+    .name = .webapi,
     .version = "0.0.1",
-    .fingerprint = 0xf983dbe0d3ea72d,
+    .fingerprint = 0x355c5a72c489077e,
     .dependencies = .{
         .javascript_bridge = .{
             .url = "git+https://github.com/dasimmet/zig-javascript-bridge.git#0b0520c3810f5f33516b111fa44aa055f40b2034",

@@ -1,8 +1,8 @@
 //! Type-safe wrapper for the browser Fetch API.
 //! https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
 const std = @import("std");
-const zjblib = @import("zjblib.zig");
-const zjb = zjblib.zjb;
+const webapi = @import("webapi.zig");
+const zjb = webapi.zjb;
 
 /// Type-safe wrapper for HTTP request and response headers.
 pub const Headers = struct {
@@ -57,7 +57,7 @@ pub const Headers = struct {
         defer name_s.release();
         const val_h = self.handle.call("get", .{name_s}, zjb.Handle);
         defer val_h.release();
-        return zjblib.stringFromHandle(val_h, buf);
+        return webapi.stringFromHandle(val_h, buf);
     }
 
     /// Checks whether a header exists by name.
@@ -159,7 +159,7 @@ pub const Response = struct {
         std.debug.assert(buf.len > 0);
         const st = self.handle.get("statusText", zjb.Handle);
         defer st.release();
-        return zjblib.stringFromHandle(st, buf);
+        return webapi.stringFromHandle(st, buf);
     }
 
     /// Retrieves the response headers object.
@@ -171,7 +171,7 @@ pub const Response = struct {
     }
 
     /// Reads the response body to an ArrayBuffer as a Promise.
-    pub fn arrayBuffer(self: Response) zjblib.Promise {
+    pub fn arrayBuffer(self: Response) webapi.Promise {
         std.debug.assert(!self.handle.isNull());
         const p = self.handle.call("arrayBuffer", .{}, zjb.Handle);
         std.debug.assert(!p.isNull());
@@ -179,7 +179,7 @@ pub const Response = struct {
     }
 
     /// Reads the response body to text as a Promise.
-    pub fn text(self: Response) zjblib.Promise {
+    pub fn text(self: Response) webapi.Promise {
         std.debug.assert(!self.handle.isNull());
         const p = self.handle.call("text", .{}, zjb.Handle);
         std.debug.assert(!p.isNull());
@@ -187,7 +187,7 @@ pub const Response = struct {
     }
 
     /// Reads and parses the response body as JSON into a Promise.
-    pub fn json(self: Response) zjblib.Promise {
+    pub fn json(self: Response) webapi.Promise {
         std.debug.assert(!self.handle.isNull());
         const p = self.handle.call("json", .{}, zjb.Handle);
         std.debug.assert(!p.isNull());
@@ -195,7 +195,7 @@ pub const Response = struct {
     }
 
     /// Reads the response body as a Blob into a Promise.
-    pub fn blob(self: Response) zjblib.Promise {
+    pub fn blob(self: Response) webapi.Promise {
         std.debug.assert(!self.handle.isNull());
         const p = self.handle.call("blob", .{}, zjb.Handle);
         std.debug.assert(!p.isNull());
@@ -204,7 +204,7 @@ pub const Response = struct {
 };
 
 /// Dispatches a fetch request returning a Promise that resolves to a Response.
-pub fn fetch(url: []const u8, init: ?RequestInit) zjblib.Promise.Typed(Response) {
+pub fn fetch(url: []const u8, init: ?RequestInit) webapi.Promise.Typed(Response) {
     std.debug.assert(url.len > 0);
     const url_s = zjb.string(url);
     defer url_s.release();

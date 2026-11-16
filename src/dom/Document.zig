@@ -3,13 +3,13 @@
 
 // 1. Imports
 const std = @import("std");
-const zjblib = @import("../zjblib.zig");
+const webapi = @import("../webapi.zig");
 const Element = @import("Element.zig");
 
 // 2. Shortcuts on imports
 const Document = @This();
-const dom = zjblib.dom;
-const zjb = zjblib.zjb;
+const dom = webapi.dom;
+const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
@@ -155,13 +155,13 @@ pub fn setElemDisplay(
     }
 }
 
-/// Attaches a context-bound listener receiving `zjblib.Event.EventFor(ev)`.
+/// Attaches a context-bound listener receiving `webapi.Event.EventFor(ev)`.
 pub fn addEventListener(
     self: Document,
     comptime ev: []const u8,
     comptime Context: type,
     ctx: *Context,
-    comptime f: *const fn (*Context, zjblib.Event.EventFor(ev)) void,
+    comptime f: *const fn (*Context, webapi.Event.EventFor(ev)) void,
 ) void {
     self.asElement().addEventListener(ev, Context, ctx, f);
 }
@@ -174,7 +174,7 @@ pub fn getTitle(self: Document, buf: []u8) []const u8 {
     const title_h = self.handle.get("title", zjb.Handle);
     defer title_h.release();
     if (title_h.isNull()) return "";
-    return zjblib.stringFromHandle(title_h, buf);
+    return webapi.stringFromHandle(title_h, buf);
 }
 
 /// Allocates and returns the document's `title` property.
@@ -187,5 +187,5 @@ pub fn getTitleAlloc(
     std.debug.assert(@backingInt(self.handle) != 0);
     const title_h = self.handle.get("title", zjb.Handle);
     defer title_h.release();
-    return zjblib.stringFromHandleAlloc(alloc, title_h);
+    return webapi.stringFromHandleAlloc(alloc, title_h);
 }

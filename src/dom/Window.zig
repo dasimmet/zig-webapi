@@ -3,7 +3,7 @@
 
 // 1. Imports
 const std = @import("std");
-const zjblib = @import("../zjblib.zig");
+const webapi = @import("../webapi.zig");
 const Document = @import("Document.zig");
 const History = @import("History.zig");
 const Location = @import("Location.zig");
@@ -14,8 +14,8 @@ const VisualViewport = @import("VisualViewport.zig");
 
 // 2. Shortcuts on imports
 const Window = @This();
-const dom = zjblib.dom;
-const zjb = zjblib.zjb;
+const dom = webapi.dom;
+const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
@@ -208,19 +208,19 @@ pub fn open(self: Window, url: []const u8, target: []const u8) Window {
     return .{ .handle = win_h };
 }
 
-/// Attaches a context-bound listener receiving `zjblib.Event.EventFor(ev)`.
+/// Attaches a context-bound listener receiving `webapi.Event.EventFor(ev)`.
 pub fn addEventListener(
     self: Window,
     comptime ev: []const u8,
     comptime Context: type,
     ctx: *Context,
-    comptime f: *const fn (*Context, zjblib.Event.EventFor(ev)) void,
+    comptime f: *const fn (*Context, webapi.Event.EventFor(ev)) void,
 ) void {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(ev.len > 0);
-    zjblib.boundEventListenerTyped(
+    webapi.boundEventListenerTyped(
         Context,
-        zjblib.Event.EventFor(ev),
+        webapi.Event.EventFor(ev),
         ev,
         self.handle,
         f,
@@ -228,19 +228,19 @@ pub fn addEventListener(
     );
 }
 
-/// Attaches an owned-handle typed listener receiving `zjblib.Event.EventFor(ev)`.
+/// Attaches an owned-handle typed listener receiving `webapi.Event.EventFor(ev)`.
 pub fn addEventListenerOwned(
     self: Window,
     comptime ev: []const u8,
     comptime Context: type,
     ctx: *Context,
-    comptime f: *const fn (*Context, zjblib.Event.EventFor(ev)) void,
+    comptime f: *const fn (*Context, webapi.Event.EventFor(ev)) void,
 ) void {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(ev.len > 0);
-    zjblib.boundEventListenerTypedOwned(
+    webapi.boundEventListenerTypedOwned(
         Context,
-        zjblib.Event.EventFor(ev),
+        webapi.Event.EventFor(ev),
         ev,
         self.handle,
         f,
@@ -249,7 +249,7 @@ pub fn addEventListenerOwned(
 }
 
 // 9. Private helpers
-/// Wraps `f` through `zjblib.boundFunction` and invokes a `Window` timer API.
+/// Wraps `f` through `webapi.boundFunction` and invokes a `Window` timer API.
 fn scheduleTimer(
     self: Window,
     comptime method: []const u8,
@@ -267,7 +267,7 @@ fn scheduleTimer(
             f(inner_ctx);
         }
     };
-    const cb = zjblib.boundFunction(Context, ctx, &Wrapper.call);
+    const cb = webapi.boundFunction(Context, ctx, &Wrapper.call);
     defer cb.release();
     return self.handle.call(method, .{ cb, ms }, i32);
 }

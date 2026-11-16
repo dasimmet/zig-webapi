@@ -1,5 +1,5 @@
 const std = @import("std");
-const zjblib_pkg = @import("zjblib");
+const webapi_pkg = @import("webapi");
 
 pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
@@ -10,8 +10,8 @@ pub fn build(b: *std.Build) void {
         },
     });
 
-    const zjblib_dep = b.dependency("zjblib", .{});
-    const zjblib_mod = zjblib_dep.module("zjblib");
+    const webapi_dep = b.dependency("webapi", .{});
+    const webapi_mod = webapi_dep.module("webapi");
 
     const exe = b.addExecutable(.{
         .name = "example",
@@ -22,15 +22,15 @@ pub fn build(b: *std.Build) void {
             .strip = false,
             .imports = &.{
                 .{
-                    .name = "zjblib",
-                    .module = zjblib_mod,
+                    .name = "webapi",
+                    .module = webapi_mod,
                 },
             },
         }),
     });
     exe.rdynamic = true;
 
-    const zjb_bindings = zjblib_pkg.bindgen(b, .{
+    const zjb_bindings = webapi_pkg.bindgen(b, .{
         .wasm = exe.getEmittedBin(),
         .basename = "zjb_bindings.js",
         .classname = "Zjb",

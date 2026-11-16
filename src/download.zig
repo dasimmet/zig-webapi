@@ -1,6 +1,6 @@
 const std = @import("std");
-const zjblib = @import("zjblib.zig");
-const zjb = zjblib.zjb;
+const webapi = @import("webapi.zig");
+const zjb = webapi.zjb;
 
 pub const Options = struct {
     bytes: []const u8,
@@ -50,7 +50,7 @@ pub fn bytes(opt: Options) void {
     defer style.release();
     style.set("display", zjb.constString("none"));
 
-    const body = zjblib.dom.document().body() orelse unreachable;
+    const body = webapi.dom.document().body() orelse unreachable;
     defer body.release();
 
     body.appendChild(.init(a));

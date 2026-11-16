@@ -5,12 +5,12 @@
 
 // 1. Imports
 const std = @import("std");
-const zjblib = @import("../zjblib.zig");
+const webapi = @import("../webapi.zig");
 const Event = @import("../Event.zig");
 
 // 2. Shortcuts on imports
 const MediaQueryListEvent = @This();
-const zjb = zjblib.zjb;
+const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
@@ -60,5 +60,5 @@ pub fn media(self: MediaQueryListEvent, buf: []u8) []const u8 {
     std.debug.assert(buf.len > 0);
     const media_h = self.handle.get("media", zjb.Handle);
     defer media_h.release();
-    return zjblib.stringFromHandle(media_h, buf);
+    return webapi.stringFromHandle(media_h, buf);
 }

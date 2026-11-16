@@ -9,10 +9,10 @@
 //! when no longer needed (separate from GPU deletion like `deleteBuffer`).
 
 const std = @import("std");
-const zjblib = @import("zjblib.zig");
-const zjb = zjblib.zjb;
+const webapi = @import("webapi.zig");
+const zjb = webapi.zjb;
 const console = @import("console.zig");
-const Element = zjblib.dom.Element;
+const Element = webapi.dom.Element;
 
 const WebGL = @This();
 

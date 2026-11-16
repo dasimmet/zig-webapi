@@ -3,7 +3,7 @@
 
 // 1. Imports
 const std = @import("std");
-const zjblib = @import("../zjblib.zig");
+const webapi = @import("../webapi.zig");
 const CSSStyleDeclaration = @import("CSSStyleDeclaration.zig");
 const DOMRect = @import("DOMRect.zig");
 const HTMLIFrameElement = @import("HTMLIFrameElement.zig");
@@ -11,8 +11,8 @@ const TokenList = @import("TokenList.zig");
 
 // 2. Shortcuts on imports
 const Element = @This();
-const dom = zjblib.dom;
-const zjb = zjblib.zjb;
+const dom = webapi.dom;
+const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
@@ -117,19 +117,19 @@ pub fn classList(self: Element) TokenList {
     return .{ .handle = self.handle.get("classList", zjb.Handle) };
 }
 
-/// Attaches a context-bound listener receiving `zjblib.Event.EventFor(ev)`.
+/// Attaches a context-bound listener receiving `webapi.Event.EventFor(ev)`.
 pub fn addEventListener(
     self: Element,
     comptime ev: []const u8,
     comptime Context: type,
     ctx: *Context,
-    comptime f: *const fn (*Context, zjblib.Event.EventFor(ev)) void,
+    comptime f: *const fn (*Context, webapi.Event.EventFor(ev)) void,
 ) void {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(ev.len > 0);
-    zjblib.boundEventListenerTyped(
+    webapi.boundEventListenerTyped(
         Context,
-        zjblib.Event.EventFor(ev),
+        webapi.Event.EventFor(ev),
         ev,
         self.handle,
         f,
@@ -137,19 +137,19 @@ pub fn addEventListener(
     );
 }
 
-/// Attaches an owned-handle typed listener receiving `zjblib.Event.EventFor(ev)`.
+/// Attaches an owned-handle typed listener receiving `webapi.Event.EventFor(ev)`.
 pub fn addEventListenerOwned(
     self: Element,
     comptime ev: []const u8,
     comptime Context: type,
     ctx: *Context,
-    comptime f: *const fn (*Context, zjblib.Event.EventFor(ev)) void,
+    comptime f: *const fn (*Context, webapi.Event.EventFor(ev)) void,
 ) void {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(ev.len > 0);
-    zjblib.boundEventListenerTypedOwned(
+    webapi.boundEventListenerTypedOwned(
         Context,
-        zjblib.Event.EventFor(ev),
+        webapi.Event.EventFor(ev),
         ev,
         self.handle,
         f,
@@ -271,7 +271,7 @@ pub fn getAttribute(
         return null;
     }
     defer attr_h.release();
-    return zjblib.stringFromHandle(attr_h, buf);
+    return webapi.stringFromHandle(attr_h, buf);
 }
 
 /// Allocates and returns attribute `name` value, or null if absent.
@@ -292,7 +292,7 @@ pub fn getAttributeAlloc(
         return null;
     }
     defer attr_h.release();
-    return try zjblib.stringFromHandleAlloc(allocator, attr_h);
+    return try webapi.stringFromHandleAlloc(allocator, attr_h);
 }
 
 /// Sets `element.innerText` to `text`.
@@ -333,7 +333,7 @@ pub fn getValueAlloc(
         return null;
     }
     defer val_h.release();
-    return try zjblib.stringFromHandleAlloc(allocator, val_h);
+    return try webapi.stringFromHandleAlloc(allocator, val_h);
 }
 
 /// Sets the element's `value` property to `val`.
@@ -356,7 +356,7 @@ pub fn getValueInt(self: Element) ?i32 {
     }
     defer val_h.release();
     var buf: [16]u8 = undefined;
-    const str = zjblib.stringFromHandle(val_h, &buf);
+    const str = webapi.stringFromHandle(val_h, &buf);
     return std.fmt.parseInt(i32, str, 10) catch null;
 }
 

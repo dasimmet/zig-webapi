@@ -6,13 +6,13 @@
 
 // 1. Imports
 const std = @import("std");
-const zjblib = @import("../zjblib.zig");
+const webapi = @import("../webapi.zig");
 const Event = @import("../Event.zig");
 const MouseEvent = @import("MouseEvent.zig");
 
 // 2. Shortcuts on imports
 const PointerEvent = @This();
-const zjb = zjblib.zjb;
+const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
@@ -81,7 +81,7 @@ pub fn pointerType(self: PointerEvent, buf: []u8) []const u8 {
     std.debug.assert(buf.len > 0);
     const type_h = self.handle.get("pointerType", zjb.Handle);
     defer type_h.release();
-    return zjblib.stringFromHandle(type_h, buf);
+    return webapi.stringFromHandle(type_h, buf);
 }
 
 /// Returns true if this pointer represents the primary pointer of its type.

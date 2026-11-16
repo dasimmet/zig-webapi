@@ -3,11 +3,11 @@
 
 // 1. Imports
 const std = @import("std");
-const zjblib = @import("../zjblib.zig");
+const webapi = @import("../webapi.zig");
 
 // 2. Shortcuts on imports
 const Clipboard = @This();
-const zjb = zjblib.zjb;
+const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
@@ -25,7 +25,7 @@ pub fn release(self: Clipboard) void {
 
 /// Writes `text` to the system clipboard and returns a typed void Promise.
 /// https://developer.mozilla.org/en-US/docs/Web/API/Clipboard/writeText
-pub fn writeText(self: Clipboard, text: []const u8) zjblib.Promise.Typed(void) {
+pub fn writeText(self: Clipboard, text: []const u8) webapi.Promise.Typed(void) {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(text.len <= 1024 * 1024);
     const text_s = zjb.string(text);
@@ -36,7 +36,7 @@ pub fn writeText(self: Clipboard, text: []const u8) zjblib.Promise.Typed(void) {
 
 /// Reads text from the system clipboard and returns a Promise.
 /// https://developer.mozilla.org/en-US/docs/Web/API/Clipboard/readText
-pub fn readText(self: Clipboard) zjblib.Promise {
+pub fn readText(self: Clipboard) webapi.Promise {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
     return .{ .handle = self.handle.call("readText", .{}, zjb.Handle) };

@@ -2,8 +2,8 @@
 //! https://developer.mozilla.org/en-US/docs/Web/API/Document_Object_Model
 
 const std = @import("std");
-const zjblib = @import("zjblib.zig");
-const zjb = zjblib.zjb;
+const webapi = @import("webapi.zig");
+const zjb = webapi.zjb;
 
 pub const CSSStyleDeclaration = @import("dom/CSSStyleDeclaration.zig");
 pub const Clipboard = @import("dom/Clipboard.zig");

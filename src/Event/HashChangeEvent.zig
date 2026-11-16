@@ -4,12 +4,12 @@
 
 // 1. Imports
 const std = @import("std");
-const zjblib = @import("../zjblib.zig");
+const webapi = @import("../webapi.zig");
 const Event = @import("../Event.zig");
 
 // 2. Shortcuts on imports
 const HashChangeEvent = @This();
-const zjb = zjblib.zjb;
+const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
@@ -58,7 +58,7 @@ pub fn oldURL(self: HashChangeEvent, buf: []u8) []const u8 {
     std.debug.assert(buf.len > 0);
     const url_h = self.handle.get("oldURL", zjb.Handle);
     defer url_h.release();
-    return zjblib.stringFromHandle(url_h, buf);
+    return webapi.stringFromHandle(url_h, buf);
 }
 
 /// Copies the new URL after the hash change into `buf`.
@@ -68,5 +68,5 @@ pub fn newURL(self: HashChangeEvent, buf: []u8) []const u8 {
     std.debug.assert(buf.len > 0);
     const url_h = self.handle.get("newURL", zjb.Handle);
     defer url_h.release();
-    return zjblib.stringFromHandle(url_h, buf);
+    return webapi.stringFromHandle(url_h, buf);
 }

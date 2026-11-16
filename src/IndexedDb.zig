@@ -7,8 +7,8 @@
 //! caused by Structured Clone attempting to duplicate the WebAssembly heap.
 
 const std = @import("std");
-const zjblib = @import("zjblib.zig");
-const zjb = zjblib.zjb;
+const webapi = @import("webapi.zig");
+const zjb = webapi.zjb;
 
 /// IndexedDB transaction access modes.
 pub const TransactionMode = enum {
@@ -19,7 +19,7 @@ pub const TransactionMode = enum {
 
 /// Allocates an independent JavaScript `Uint8Array` of exact size `data.len`
 /// and copies bytes into it.
-pub const createStandaloneUint8Array = zjblib.createStandaloneUint8Array;
+pub const createStandaloneUint8Array = webapi.createStandaloneUint8Array;
 
 /// Deletes an IndexedDB database by name.
 pub fn deleteDatabase(name: []const u8) void {
@@ -62,20 +62,20 @@ pub const ObjectStore = struct {
         defer if (has_data_field) data_h.release();
 
         const target_h = if (has_data_field) data_h else val_h;
-        const bytes = zjblib.bytesFromHandleAlloc(
+        const bytes = webapi.bytesFromHandleAlloc(
             allocator,
             target_h,
         ) catch return null;
 
         var mtime: u64 = default_mtime;
         if (has_data_field and
-            zjblib.hasProperty(val_h, "mtime_lo") and
-            zjblib.hasProperty(val_h, "mtime_hi"))
+            webapi.hasProperty(val_h, "mtime_lo") and
+            webapi.hasProperty(val_h, "mtime_hi"))
         {
             const lo: u32 = @bitCast(val_h.get("mtime_lo", i32));
             const hi: u32 = @bitCast(val_h.get("mtime_hi", i32));
             mtime = (@as(u64, hi) << 32) | lo;
-        } else if (has_data_field and zjblib.hasProperty(val_h, "mtime")) {
+        } else if (has_data_field and webapi.hasProperty(val_h, "mtime")) {
             const mt = val_h.get("mtime", f64);
             if (mt > 0.0 and mt < 1.8e19) {
                 mtime = @intFromFloat(mt);
@@ -274,7 +274,7 @@ pub const Transaction = struct {
     pub fn commit(self: Transaction) void {
         std.debug.assert(!self.handle.isNull());
         std.debug.assert(@backingInt(self.handle) != 0);
-        if (zjblib.hasProperty(self.handle, "commit")) {
+        if (webapi.hasProperty(self.handle, "commit")) {
             self.handle.call("commit", .{}, void);
         }
     }
@@ -309,7 +309,7 @@ pub const Database = struct {
     pub fn retain(self: Database) Database {
         std.debug.assert(!self.handle.isNull());
         std.debug.assert(@backingInt(self.handle) != 0);
-        return Database.fromHandle(zjblib.retainHandle(self.handle));
+        return Database.fromHandle(webapi.retainHandle(self.handle));
     }
 
     /// Closes the database connection.
@@ -498,21 +498,21 @@ pub fn open(
         .on_error = options.on_error,
     };
 
-    zjblib.boundEventListener(
+    webapi.boundEventListener(
         OpenHandler(Ctx),
         "upgradeneeded",
         open_req,
         OpenHandler(Ctx).onUpgradeNeeded,
         handler,
     );
-    zjblib.boundEventListener(
+    webapi.boundEventListener(
         OpenHandler(Ctx),
         "success",
         open_req,
         OpenHandler(Ctx).onSuccess,
         handler,
     );
-    zjblib.boundEventListener(
+    webapi.boundEventListener(
         OpenHandler(Ctx),
         "error",
         open_req,
@@ -555,9 +555,9 @@ fn BatchLoadHandler(comptime Ctx: type) type {
                     defer val_h.release();
 
                     var key_buf: [1024]u8 = undefined;
-                    const key_str = zjblib.stringFromHandle(key_h, &key_buf);
+                    const key_str = webapi.stringFromHandle(key_h, &key_buf);
                     if (key_str.len > 0) {
-                        if (zjblib.bytesFromHandleAlloc(
+                        if (webapi.bytesFromHandleAlloc(
                             self.allocator,
                             val_h,
                         )) |data| {
@@ -615,14 +615,14 @@ pub fn loadAllEntries(
         .on_done = on_done,
     };
 
-    zjblib.boundEventListener(
+    webapi.boundEventListener(
         BatchLoadHandler(Ctx),
         "success",
         vals_req,
         BatchLoadHandler(Ctx).onSuccess,
         handler,
     );
-    zjblib.boundEventListener(
+    webapi.boundEventListener(
         BatchLoadHandler(Ctx),
         "error",
         vals_req,

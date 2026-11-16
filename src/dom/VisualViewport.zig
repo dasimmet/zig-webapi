@@ -3,12 +3,12 @@
 
 // 1. Imports
 const std = @import("std");
-const zjblib = @import("../zjblib.zig");
+const webapi = @import("../webapi.zig");
 
 // 2. Shortcuts on imports
 const VisualViewport = @This();
-const dom = zjblib.dom;
-const zjb = zjblib.zjb;
+const dom = webapi.dom;
+const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
@@ -56,19 +56,19 @@ pub fn scale(self: VisualViewport) f32 {
     return self.handle.get("scale", f32);
 }
 
-/// Attaches a context-bound listener receiving `zjblib.Event.EventFor(ev)`.
+/// Attaches a context-bound listener receiving `webapi.Event.EventFor(ev)`.
 pub fn addEventListener(
     self: VisualViewport,
     comptime ev: []const u8,
     comptime Context: type,
     ctx: *Context,
-    comptime f: *const fn (*Context, zjblib.Event.EventFor(ev)) void,
+    comptime f: *const fn (*Context, webapi.Event.EventFor(ev)) void,
 ) void {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(ev.len > 0);
-    zjblib.boundEventListenerTyped(
+    webapi.boundEventListenerTyped(
         Context,
-        zjblib.Event.EventFor(ev),
+        webapi.Event.EventFor(ev),
         ev,
         self.handle,
         f,
@@ -76,19 +76,19 @@ pub fn addEventListener(
     );
 }
 
-/// Attaches an owned-handle typed listener receiving `zjblib.Event.EventFor(ev)`.
+/// Attaches an owned-handle typed listener receiving `webapi.Event.EventFor(ev)`.
 pub fn addEventListenerOwned(
     self: VisualViewport,
     comptime ev: []const u8,
     comptime Context: type,
     ctx: *Context,
-    comptime f: *const fn (*Context, zjblib.Event.EventFor(ev)) void,
+    comptime f: *const fn (*Context, webapi.Event.EventFor(ev)) void,
 ) void {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(ev.len > 0);
-    zjblib.boundEventListenerTypedOwned(
+    webapi.boundEventListenerTypedOwned(
         Context,
-        zjblib.Event.EventFor(ev),
+        webapi.Event.EventFor(ev),
         ev,
         self.handle,
         f,
