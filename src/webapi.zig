@@ -19,8 +19,10 @@ const JsPtrInt = @Int(.signed, @bitSizeOf(usize));
 
 pub const BroadcastChannel = @import("BroadcastChannel.zig");
 pub const codec = @import("codec.zig");
+pub const CompressionStream = @import("CompressionStream.zig");
 pub const console = @import("console.zig");
 pub const Crypto = @import("Crypto.zig");
+pub const DecompressionStream = @import("DecompressionStream.zig");
 pub const dom = @import("dom.zig");
 pub const download = @import("download.zig");
 pub const Event = @import("Event.zig");
