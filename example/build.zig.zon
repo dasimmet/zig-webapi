@@ -1,0 +1,17 @@
+.{
+    .name = .zjblib_example,
+    .version = "0.0.1",
+    .fingerprint = 0x6309791ab7a5831a,
+    .minimum_zig_version = "0.17.1",
+    .dependencies = .{
+        .zjblib = .{
+            .path = "..",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "static",
+    },
+}

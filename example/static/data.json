@@ -1,0 +1,11 @@
+{
+  "library": "zjblib",
+  "message": "Hello from static data.json fetched via zjblib.fetch()!",
+  "features": [
+    "DOM & Typed Events",
+    "WebGL2 / WebGL",
+    "Fetch API & Promises",
+    "Zero-global boundFunction callbacks",
+    "Browser File Download"
+  ]
+}
