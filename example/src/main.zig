@@ -307,6 +307,92 @@ const App = struct {
         dom.document().setElemText("key-output", key_name);
     }
 
+    fn formatHex(bytes: []const u8, out: []u8) []const u8 {
+        const hex = "0123456789abcdef";
+        const n = @min(bytes.len, out.len / 2);
+        for (bytes[0..n], 0..) |b, i| {
+            out[i * 2] = hex[b >> 4];
+            out[i * 2 + 1] = hex[b & 0x0f];
+        }
+        return out[0 .. n * 2];
+    }
+
+    fn onCryptoRandomClick(_: *App, _: Event.PointerEvent) void {
+        const crypto = webapi.crypto();
+        var rand_bytes: [16]u8 = undefined;
+        crypto.getRandomValues(&rand_bytes);
+
+        var hex_buf: [32]u8 = undefined;
+        const rand_hex = formatHex(&rand_bytes, &hex_buf);
+
+        var uuid_buf: [64]u8 = undefined;
+        const uuid = crypto.randomUUID(&uuid_buf);
+
+        var out_buf: [256]u8 = undefined;
+        const msg = std.fmt.bufPrint(
+            &out_buf,
+            "randomUUID:      {s}\ngetRandomValues: {s}",
+            .{
+                if (uuid.len > 0) uuid else "(requires secure context)",
+                rand_hex,
+            },
+        ) catch return;
+        dom.document().setElemText("crypto-output", msg);
+    }
+
+    fn onCryptoDigestClick(self: *App, _: Event.PointerEvent) void {
+        const subtle = webapi.crypto().subtle();
+        defer subtle.release();
+        if (subtle.isNull()) {
+            dom.document().setElemText(
+                "crypto-output",
+                "crypto.subtle requires a secure context (HTTPS or localhost).",
+            );
+            return;
+        }
+
+        const doc = dom.document();
+        var input_owned: ?[]u8 = null;
+        defer if (input_owned) |buf| self.allocator.free(buf);
+
+        var input: []const u8 = "hello from zig-webapi";
+        if (doc.getElementById("text-input")) |el| {
+            defer el.release();
+            if (el.getValueAlloc(self.allocator) catch null) |val| {
+                input_owned = val;
+                if (val.len > 0) input = val;
+            }
+        }
+
+        const digest_p = subtle.digest(.@"SHA-256", input);
+        defer digest_p.release();
+        digest_p.thenFn(App, self, onCryptoDigestDone, onCryptoError);
+    }
+
+    fn onCryptoDigestDone(self: *App, buf_h: zjb.Handle) void {
+        const bytes = webapi.bytesFromHandleAlloc(self.allocator, buf_h) catch {
+            dom.document().setElemText("crypto-output", "Failed to read digest bytes.");
+            return;
+        };
+        defer self.allocator.free(bytes);
+
+        var hex_buf: [128]u8 = undefined;
+        const digest_hex = formatHex(bytes, &hex_buf);
+
+        var out_buf: [192]u8 = undefined;
+        const msg = std.fmt.bufPrint(
+            &out_buf,
+            "SHA-256 ({d} bytes):\n{s}",
+            .{ bytes.len, digest_hex },
+        ) catch return;
+        dom.document().setElemText("crypto-output", msg);
+    }
+
+    fn onCryptoError(_: *App, err_h: zjb.Handle) void {
+        webapi.console.@"error"("Web Crypto failed:", .{err_h});
+        dom.document().setElemText("crypto-output", "Web Crypto failed (see console).");
+    }
+
     fn bindUi(self: *App) void {
         const doc = dom.document();
 
@@ -325,6 +411,14 @@ const App = struct {
         if (doc.getElementById("btn-wasi")) |btn| {
             defer btn.release();
             btn.addEventListener("click", App, self, onWasiClick);
+        }
+        if (doc.getElementById("btn-crypto-uuid")) |btn| {
+            defer btn.release();
+            btn.addEventListener("click", App, self, onCryptoRandomClick);
+        }
+        if (doc.getElementById("btn-crypto-digest")) |btn| {
+            defer btn.release();
+            btn.addEventListener("click", App, self, onCryptoDigestClick);
         }
         if (doc.getElementById("text-input")) |input| {
             defer input.release();

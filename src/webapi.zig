@@ -35,6 +35,7 @@ pub const WebRTC = @import("WebRTC.zig");
 pub const WebSocket = @import("WebSocket.zig");
 
 pub const fetch = Fetch.fetch;
+pub const crypto = Crypto.global;
 
 /// Retrieves cryptographically random 64-bit entropy from
 /// `window.crypto.getRandomValues` and initializes a `std.Random.DefaultPrng`
