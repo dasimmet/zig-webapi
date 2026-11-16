@@ -2,6 +2,10 @@
 
 Type-safe Zig WebAssembly browser and WASI API wrappers around [`zig-javascript-bridge`](https://github.com/scottredig/zig-javascript-bridge) (`zjb`).
 
+- **Landing Page**: <https://dasimmet.github.io/zig-webapi/>
+- **API Documentation**: <https://dasimmet.github.io/zig-webapi/docs/>
+- **Live Example**: <https://dasimmet.github.io/zig-webapi/example/>
+
 `webapi` lets Zig WebAssembly applications interact with DOM APIs, events, WebGL, Fetch, Promises, IndexedDB, WebRTC, WebSockets, BroadcastChannel, WebAssembly/JSPI, and a pure-Zig WASI Snapshot Preview 1 runtime without writing custom JavaScript glue or relying on global callback singletons.
 
 ## Requirements
@@ -183,7 +187,7 @@ zig build fmt -Dfmtcheck=true
 zig build docs
 ```
 
-On pushes to `main`, [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs formatting checks, unit tests, and `zig build docs`, and deploys `zig-out/www` to GitHub Pages.
+On pushes to `main`, [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs formatting checks, unit tests, and `zig build docs`, and deploys `zig-out/www` to [GitHub Pages](https://dasimmet.github.io/zig-webapi/).
 
 ## Example Project
 
