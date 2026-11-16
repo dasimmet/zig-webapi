@@ -19,6 +19,7 @@
       <div class="actions">
         <a class="btn primary" href="./docs/">API Documentation</a>
         <a class="btn secondary" href="./example/">Live Interactive Example</a>
+        <a class="btn secondary" href="https://github.com/dasimmet/zig-webapi">GitHub Repository</a>
       </div>
     </div>
   </header>
@@ -60,9 +61,10 @@
       </article>
     </section>
 
-    <section class="panel">
-      <h2>Quick Start</h2>
-      <p>Add <code>webapi</code> to your <code>build.zig.zon</code>, wire the module and <code>bindgen</code> in <code>build.zig</code>, and build for <code>wasm32-freestanding</code> or <code>wasm64-freestanding</code>:</p>
+    <div class="panels-grid">
+      <section class="panel">
+        <h2>Quick Start</h2>
+        <p>Add <code>webapi</code> to your <code>build.zig.zon</code>, wire the module and <code>bindgen</code> in <code>build.zig</code>, and build for <code>wasm32-freestanding</code> or <code>wasm64-freestanding</code>:</p>
 <pre><code>const webapi_pkg = @import("webapi");
 
 const webapi_mod = b.dependency("webapi", .{}).module("webapi");
@@ -75,10 +77,10 @@ const zjb_bindings = webapi_pkg.bindgen(b, .{
     .module_style = .es6,
     .minify = optimize != .debug,
 });</code></pre>
-    </section>
+      </section>
 
-    <section class="panel">
-      <h2>Local Commands</h2>
+      <section class="panel">
+        <h2>Local Commands</h2>
 <pre><code># Run host-side unit tests (with handle-leak detection)
 zig build test
 
@@ -87,12 +89,14 @@ zig build fmt -Dfmtcheck=true
 
 # Emit API documentation, landing page, and example into zig-out/www/
 zig build docs</code></pre>
-    </section>
+      </section>
+    </div>
   </main>
 
   <footer class="footer container">
     <p>
       Built with Zig 0.17.1 &middot;
+      <a href="https://github.com/dasimmet/zig-webapi">GitHub</a> &middot;
       <a href="./docs/">API Docs</a> &middot;
       <a href="./example/">Live Example</a> &middot;
       <a href="https://github.com/scottredig/zig-javascript-bridge">zig-javascript-bridge</a>

@@ -37,9 +37,17 @@ const App = struct {
     vbo: WebGL.Buffer,
     pos_loc: i32,
     u_angle: WebGL.UniformLocation,
+    u_scale: WebGL.UniformLocation,
+    u_offset: WebGL.UniformLocation,
     u_tint: WebGL.UniformLocation,
     frame_cb: zjb.Handle,
     angle: f32 = 0.0,
+    scale: f32 = 1.0,
+    offset: [2]f32 = .{ 0.0, 0.0 },
+    dragging: bool = false,
+    active_pointer_id: i32 = 0,
+    last_x: f32 = 0.0,
+    last_y: f32 = 0.0,
     tint: [3]f32 = .{ 1.0, 0.85, 0.55 },
     click_count: u32 = 0,
     wasi: ?*webapi.Wasi = null,
@@ -75,6 +83,8 @@ const App = struct {
 
         const pos_loc = gl.getAttribLocation(program, "a_pos");
         const u_angle = gl.getUniformLocation(program, "u_angle");
+        const u_scale = gl.getUniformLocation(program, "u_scale");
+        const u_offset = gl.getUniformLocation(program, "u_offset");
         const u_tint = gl.getUniformLocation(program, "u_tint");
 
         const self = try allocator.create(App);
@@ -89,6 +99,8 @@ const App = struct {
             .vbo = vbo,
             .pos_loc = pos_loc,
             .u_angle = u_angle,
+            .u_scale = u_scale,
+            .u_offset = u_offset,
             .u_tint = u_tint,
             .frame_cb = .null,
         };
@@ -117,6 +129,8 @@ const App = struct {
             );
         }
         self.gl.uniform1f(self.u_angle, self.angle);
+        self.gl.uniform1f(self.u_scale, self.scale);
+        self.gl.uniform2f(self.u_offset, self.offset[0], self.offset[1]);
         self.gl.uniform3f(
             self.u_tint,
             self.tint[0],
@@ -127,9 +141,52 @@ const App = struct {
     }
 
     fn onFrame(self: *App, _: zjb.Handle) void {
-        self.angle += 0.015;
+        if (!self.dragging) {
+            self.angle += 0.015;
+        }
         self.render();
         dom.window().requestAnimationFrame(self.frame_cb);
+    }
+
+    fn onCanvasPointerDown(self: *App, ev: Event.PointerEvent) void {
+        ev.preventDefault();
+        self.dragging = true;
+        self.active_pointer_id = ev.pointerId();
+        self.last_x = ev.clientX();
+        self.last_y = ev.clientY();
+    }
+
+    fn onWindowPointerMove(self: *App, ev: Event.PointerEvent) void {
+        if (!self.dragging or ev.pointerId() != self.active_pointer_id) return;
+        const x = ev.clientX();
+        const y = ev.clientY();
+        const dx = x - self.last_x;
+        const dy = y - self.last_y;
+        self.last_x = x;
+        self.last_y = y;
+
+        const w: f32 = @floatFromInt(@max(self.canvas.get("clientWidth", i32), 1));
+        const h: f32 = @floatFromInt(@max(self.canvas.get("clientHeight", i32), 1));
+        self.offset[0] = std.math.clamp(self.offset[0] + (dx * 2.0) / w, -0.85, 0.85);
+        self.offset[1] = std.math.clamp(self.offset[1] - (dy * 2.0) / h, -0.85, 0.85);
+        self.angle += dx * 0.01;
+    }
+
+    fn onWindowPointerUp(self: *App, ev: Event.PointerEvent) void {
+        if (self.dragging and ev.pointerId() == self.active_pointer_id) {
+            self.dragging = false;
+        }
+    }
+
+    fn onCanvasWheel(self: *App, ev: Event.WheelEvent) void {
+        ev.preventDefault();
+        const factor = 1.0 - ev.deltaY() * 0.001;
+        self.scale = std.math.clamp(self.scale * factor, 0.35, 2.2);
+    }
+
+    fn onCanvasDblClick(self: *App, _: Event.PointerEvent) void {
+        self.offset = .{ 0.0, 0.0 };
+        self.scale = 1.0;
     }
 
     fn onRandomColorClick(self: *App, ev: Event.PointerEvent) void {
@@ -425,7 +482,14 @@ const App = struct {
             input.addEventListener("input", App, self, onTextInput);
         }
 
+        self.canvas.addEventListener("pointerdown", App, self, onCanvasPointerDown);
+        self.canvas.addEventListener("wheel", App, self, onCanvasWheel);
+        self.canvas.addEventListener("dblclick", App, self, onCanvasDblClick);
+
         const win = dom.window();
+        win.addEventListener("pointermove", App, self, onWindowPointerMove);
+        win.addEventListener("pointerup", App, self, onWindowPointerUp);
+        win.addEventListener("pointercancel", App, self, onWindowPointerUp);
         win.addEventListener("keydown", App, self, onWindowKeydown);
 
         const loc = win.location();

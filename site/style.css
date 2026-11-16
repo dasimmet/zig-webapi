@@ -2,26 +2,30 @@
   color-scheme: dark light;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   line-height: 1.6;
-  --bg: #0d1117;
-  --surface: #161b22;
-  --border: #30363d;
-  --text: #e6edf3;
-  --muted: #9198a1;
+  --bg: #121212;
+  --surface: #1b1b1b;
+  --code-bg: #0b0b0b;
+  --border: #2c2c2c;
+  --text: #e6e6e6;
+  --muted: #a6a6a6;
   --accent: #f7a41d;
-  --accent-text: #111418;
-  --link: #58a6ff;
+  --accent-hover: #ffb43b;
+  --accent-text: #121212;
+  --link: #f7a41d;
 }
 
 @media (prefers-color-scheme: light) {
   :root {
-    --bg: #f6f8fa;
-    --surface: #ffffff;
-    --border: #d0d7de;
-    --text: #1f2328;
-    --muted: #59636e;
-    --accent: #d97706;
-    --accent-text: #ffffff;
-    --link: #0969da;
+    --bg: #ffffff;
+    --surface: #f6f6f6;
+    --code-bg: #eeeeee;
+    --border: #dcdcdc;
+    --text: #121212;
+    --muted: #555555;
+    --accent: #f7a41d;
+    --accent-hover: #e5940c;
+    --accent-text: #121212;
+    --link: #b86b00;
   }
 }
 
@@ -45,9 +49,9 @@ code {
 }
 
 .container {
-  max-width: 920px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 0 1.25rem;
+  padding: 0 clamp(1rem, 3vw, 2.5rem);
 }
 
 .hero {
@@ -100,16 +104,37 @@ code {
   border-color: var(--accent);
 }
 
+.btn.primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
 .btn.secondary {
   background: var(--bg);
   color: var(--text);
 }
 
+.btn.secondary:hover {
+  border-color: var(--accent);
+}
+
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
   gap: 1rem;
   margin-bottom: 1.5rem;
+}
+
+.panels-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.panels-grid .panel {
+  margin-bottom: 0;
+  min-width: 0;
 }
 
 .card,
@@ -144,14 +169,34 @@ code {
 pre {
   margin: 0;
   padding: 0.9rem 1rem;
-  background: var(--bg);
+  background: var(--code-bg);
   border: 1px solid var(--border);
   border-radius: 8px;
   overflow-x: auto;
 }
 
 .footer {
-  padding: 1.5rem 1.25rem 2.5rem;
+  padding: 1.5rem clamp(1rem, 3vw, 2.5rem) 2.5rem;
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+@media (max-width: 640px) {
+  .hero {
+    padding: 2.25rem 0 1.75rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .hero h1 {
+    font-size: 2rem;
+  }
+
+  .lead {
+    font-size: 1rem;
+  }
+
+  .btn {
+    width: 100%;
+    text-align: center;
+  }
 }

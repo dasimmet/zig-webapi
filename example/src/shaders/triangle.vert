@@ -1,5 +1,7 @@
 attribute vec2 a_pos;
 uniform float u_angle;
+uniform float u_scale;
+uniform vec2 u_offset;
 varying vec2 v_pos;
 
 void main() {
@@ -8,7 +10,7 @@ void main() {
     vec2 rotated = vec2(
         a_pos.x * c - a_pos.y * s,
         a_pos.x * s + a_pos.y * c
-    );
+    ) * u_scale + u_offset;
     v_pos = a_pos;
     gl_Position = vec4(rotated, 0.0, 1.0);
 }
