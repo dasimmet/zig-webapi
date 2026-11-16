@@ -42,5 +42,5 @@ pub fn getDataAlloc(
     defer text_h.release();
     const enc = webapi.codec.encode(text_h);
     defer enc.release();
-    return try webapi.deref(allocator, enc);
+    return try webapi.bytesFromHandleAlloc(allocator, enc);
 }

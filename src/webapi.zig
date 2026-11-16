@@ -83,26 +83,6 @@ pub fn constTagName(arg: anytype) zjb.ConstHandle {
     unreachable;
 }
 
-/// Decodes a JS string handle using TextEncoder, releases the original handle,
-/// and returns an allocated UTF-8 byte slice owned by the caller.
-pub fn encodeDeref(allocator: std.mem.Allocator, handle: zjb.Handle) ![]u8 {
-    const dec = codec.encode(handle);
-    defer dec.release();
-    handle.release();
-    return deref(allocator, dec);
-}
-
-/// Allocates a buffer sized to the JS `Uint8Array` length of `handle`
-/// and copies its bytes into the newly allocated Zig slice.
-pub fn deref(allocator: std.mem.Allocator, handle: zjb.Handle) ![]u8 {
-    const len = handle.get("length", i32);
-    const buf = try allocator.alloc(u8, @intCast(len));
-    const av = zjb.u8ArrayView(buf);
-    defer av.release();
-    av.call("set", .{handle}, void);
-    return buf;
-}
-
 /// Retrieves the current `window.location.href` into a newly allocated UTF-8
 /// slice owned by the caller.
 pub fn getUri(allocator: std.mem.Allocator) ![]u8 {
@@ -112,7 +92,7 @@ pub fn getUri(allocator: std.mem.Allocator) ![]u8 {
     const href = location.get("href", zjb.Handle);
     defer href.release();
 
-    return try encodeDeref(allocator, href);
+    return try stringFromHandleAlloc(allocator, href);
 }
 
 var _asyncFn: ?zjb.Handle = null;
