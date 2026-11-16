@@ -1,6 +1,7 @@
 .{
     .name = .zjblib,
     .version = "0.0.1",
+    .fingerprint = 0xf983dbe0d3ea72d,
     .dependencies = .{
         .javascript_bridge = .{
             .url = "git+https://github.com/dasimmet/zig-javascript-bridge.git#0b0520c3810f5f33516b111fa44aa055f40b2034",
@@ -8,6 +9,11 @@
         },
     },
     .minimum_zig_version = "0.17.1",
-    .paths = .{""},
-    .fingerprint = 0xf983dbe0d3ea72d,
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "README.md",
+        "LICENSE",
+        "src",
+    },
 }
