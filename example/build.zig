@@ -41,6 +41,24 @@ pub fn build(b: *std.Build) void {
     const wasm_install = b.addInstallFile(exe.getEmittedBin(), "www/example.wasm");
     b.default_step.dependOn(&wasm_install.step);
 
+    const wasi_target = b.resolveTargetQuery(.{
+        .cpu_arch = .wasm32,
+        .os_tag = .wasi,
+    });
+    const wasi_hello = b.addExecutable(.{
+        .name = "wasi_hello",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/wasi_hello.zig"),
+            .target = wasi_target,
+            .optimize = optimize,
+        }),
+    });
+    const wasi_hello_install = b.addInstallFile(
+        wasi_hello.getEmittedBin(),
+        "www/wasi_hello.wasm",
+    );
+    b.default_step.dependOn(&wasi_hello_install.step);
+
     const js_install = b.addInstallFile(zjb_bindings, "www/zjb_bindings.js");
     b.default_step.dependOn(&js_install.step);
 
