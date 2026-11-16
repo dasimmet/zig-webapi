@@ -168,13 +168,22 @@ instance.exports._start();
 - **Callback & listener views**: Handles passed into `boundFunction`, `addEventListener`, and `Promise.thenFn` callbacks are non-owning views and are automatically released when the callback returns. Use `boundFunctionOwned` / `addEventListenerOwned` / `boundEventListenerTypedOwned` if you need to keep the handle past callback return.
 - **Global singletons**: `dom.document()` and `dom.window()` wrap `zjb.ConstHandle` values and do not need to be released.
 
-## Running Unit Tests
+## Running Unit Tests, Formatting & Docs
 
 Host-side unit tests use the in-memory mock in [`src/testing/zjb.zig`](src/testing/zjb.zig) to verify wrapper behavior and detect handle leaks or double-frees without a browser:
 
 ```bash
+# Run unit tests
 zig build test
+
+# Check Zig source formatting (omit -Dfmtcheck=true to format in place)
+zig build fmt -Dfmtcheck=true
+
+# Emit API documentation (zig-out/www/docs/), landing page (zig-out/www/), and example (zig-out/www/example/)
+zig build docs
 ```
+
+On pushes to `main`, [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs formatting checks, unit tests, and `zig build docs`, and deploys `zig-out/www` to GitHub Pages.
 
 ## Example Project
 

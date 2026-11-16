@@ -44,5 +44,70 @@ pub fn build(b: *std.Build) void {
     });
     const test_run = b.addRunArtifact(tests);
 
-    b.step("test", "").dependOn(&test_run.step);
+    b.step("test", "Run unit tests").dependOn(&test_run.step);
+
+    const wasm_target = b.resolveTargetQuery(.{
+        .cpu_arch = .wasm32,
+        .os_tag = .freestanding,
+    });
+    const docs_obj = b.addObject(.{
+        .name = "webapi",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/webapi.zig"),
+            .target = wasm_target,
+            .optimize = optimize,
+            .imports = &.{
+                .{
+                    .name = "zjb",
+                    .module = zjb_module,
+                },
+            },
+        }),
+    });
+    const docs_install = b.addInstallDirectory(.{
+        .source_dir = docs_obj.getEmittedDocs(),
+        .install_dir = .prefix,
+        .install_subdir = "www/docs",
+    });
+
+    const landing_install = b.addInstallDirectory(.{
+        .source_dir = b.path("site"),
+        .install_dir = .prefix,
+        .install_subdir = "www",
+    });
+
+    const example_run = std.Build.Step.Run.create(b, "build-example");
+    example_run.setCwd(b.path("example"));
+    example_run.addArg(b.graph.zig_exe);
+    example_run.addArgs(&.{ "build", "-Doptimize=small", "--prefix" });
+    const example_prefix = example_run.addOutputDirectoryArg("example-out");
+    example_run.has_side_effects = true;
+
+    const example_install = b.addInstallDirectory(.{
+        .source_dir = example_prefix.path(b, "www"),
+        .install_dir = .prefix,
+        .install_subdir = "www/example",
+    });
+    example_install.step.dependOn(&example_run.step);
+
+    const docs_step = b.step(
+        "docs",
+        "Emit API documentation, landing page, and example to zig-out/www",
+    );
+    docs_step.dependOn(&docs_install.step);
+    docs_step.dependOn(&landing_install.step);
+    docs_step.dependOn(&example_install.step);
+
+    const fmt = b.addFmt(.{
+        .check = b.option(bool, "fmtcheck", "run zig fmt in check mode") orelse false,
+        .paths = b.pathList(&.{
+            "src",
+            "example/src",
+            "example/build.zig",
+            "example/build.zig.zon",
+            "build.zig",
+            "build.zig.zon",
+        }),
+    });
+    b.step("fmt", "Format or check formatting of Zig source files").dependOn(&fmt.step);
 }

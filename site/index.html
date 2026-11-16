@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>webapi — Type-Safe Zig WebAssembly Browser &amp; WASI Bindings</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="hero">
+    <div class="container">
+      <p class="eyebrow">Zig 0.17.1 &middot; WebAssembly &middot; WASI</p>
+      <h1>webapi</h1>
+      <p class="lead">
+        Type-safe Zig WebAssembly browser and WASI API wrappers around
+        <a href="https://github.com/scottredig/zig-javascript-bridge">zig-javascript-bridge</a>
+        (<code>zjb</code>), with zero-global context-bound callbacks and host-side leak-checked mocks.
+      </p>
+      <div class="actions">
+        <a class="btn primary" href="./docs/">API Documentation</a>
+        <a class="btn secondary" href="./example/">Live Interactive Example</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="grid">
+      <article class="card">
+        <h2>DOM &amp; Typed Events</h2>
+        <p>
+          Safe wrappers for <code>Document</code>, <code>Window</code>, <code>Element</code>,
+          <code>CSSStyleDeclaration</code>, <code>Location</code>, <code>History</code>,
+          <code>Clipboard</code>, and compile-time typed events via
+          <code>Event.EventFor(name)</code>.
+        </p>
+      </article>
+      <article class="card">
+        <h2>Zero-Global Callbacks</h2>
+        <p>
+          Bind DOM listeners, animation frames, timers, and <code>Promise</code>
+          continuations directly to Zig struct pointers via <code>boundFunction</code>
+          and <code>boundEventListenerTyped</code> without global singletons.
+        </p>
+      </article>
+      <article class="card">
+        <h2>Graphics, Fetch &amp; Storage</h2>
+        <p>
+          Includes typed <code>WebGL</code> / WebGL2 bindings, <code>Fetch</code> &amp;
+          <code>Promise.Typed(T)</code>, browser file downloads (<code>download.bytes</code>),
+          and WASM-heap-safe <code>IndexedDb</code> wrappers.
+        </p>
+      </article>
+      <article class="card">
+        <h2>Networking &amp; WASI</h2>
+        <p>
+          Provides <code>WebRTC</code>, <code>WebSocket</code>, <code>BroadcastChannel</code>,
+          <code>WebAssembly</code> / JSPI helpers, and a pure-Zig WASI Snapshot Preview 1
+          runtime with in-memory, tar, and IndexedDB filesystems.
+        </p>
+      </article>
+    </section>
+
+    <section class="panel">
+      <h2>Quick Start</h2>
+      <p>Add <code>webapi</code> to your <code>build.zig.zon</code>, wire the module and <code>bindgen</code> in <code>build.zig</code>, and build for <code>wasm32-freestanding</code> or <code>wasm64-freestanding</code>:</p>
+<pre><code>const webapi_pkg = @import("webapi");
+
+const webapi_mod = b.dependency("webapi", .{}).module("webapi");
+exe.root_module.addImport("webapi", webapi_mod);
+
+const zjb_bindings = webapi_pkg.bindgen(b, .{
+    .wasm = exe.getEmittedBin(),
+    .basename = "zjb_bindings.js",
+    .classname = "Zjb",
+    .module_style = .es6,
+    .minify = optimize != .debug,
+});</code></pre>
+    </section>
+
+    <section class="panel">
+      <h2>Local Commands</h2>
+<pre><code># Run host-side unit tests (with handle-leak detection)
+zig build test
+
+# Check Zig source formatting
+zig build fmt -Dfmtcheck=true
+
+# Emit API documentation, landing page, and example into zig-out/www/
+zig build docs</code></pre>
+    </section>
+  </main>
+
+  <footer class="footer container">
+    <p>
+      Built with Zig 0.17.1 &middot;
+      <a href="./docs/">API Docs</a> &middot;
+      <a href="./example/">Live Example</a> &middot;
+      <a href="https://github.com/scottredig/zig-javascript-bridge">zig-javascript-bridge</a>
+    </p>
+  </footer>
+</body>
+</html>
