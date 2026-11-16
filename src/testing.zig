@@ -884,3 +884,139 @@ test "Crypto: window.crypto, getRandomValues, randomUUID, and SubtleCrypto lifec
     }
     try zjb.assertNoHandleLeaks();
 }
+
+test "webapi.WebRTC, WebSocket, and BroadcastChannel typed event wrappers" {
+    const warmup = webapi.codec.encode(zjb.constString("").asHandle());
+    warmup.release();
+
+    Mock.reset();
+    {
+        const ev_ns = webapi.Event;
+        try std.testing.expect(ev_ns.EventFor("message") == ev_ns.MessageEvent);
+        try std.testing.expect(ev_ns.EventFor("messageerror") == ev_ns.MessageEvent);
+        try std.testing.expect(ev_ns.EventFor("close") == ev_ns.CloseEvent);
+        try std.testing.expect(
+            ev_ns.EventFor("icecandidate") == ev_ns.RTCPeerConnectionIceEvent,
+        );
+        try std.testing.expect(
+            ev_ns.EventFor("icecandidateerror") ==
+                ev_ns.RTCPeerConnectionIceErrorEvent,
+        );
+        try std.testing.expect(
+            ev_ns.EventFor("datachannel") == ev_ns.RTCDataChannelEvent,
+        );
+        try std.testing.expect(ev_ns.EventFor("open") == ev_ns);
+        try std.testing.expect(ev_ns.EventFor("error") == ev_ns);
+
+        const evt_h = Mock.allocHandle("mock_rtc_evt");
+        defer evt_h.release();
+        var buf: [32]u8 = undefined;
+
+        const msg_ev = ev_ns.MessageEvent.fromHandle(evt_h);
+        const data_h = msg_ev.data();
+        data_h.release();
+        _ = msg_ev.origin(&buf);
+        _ = msg_ev.lastEventId(&buf);
+
+        const close_ev = ev_ns.CloseEvent.fromHandle(evt_h);
+        _ = close_ev.code();
+        _ = close_ev.reason(&buf);
+        _ = close_ev.wasClean();
+
+        const dc_ev = ev_ns.RTCDataChannelEvent.fromHandle(evt_h);
+        const ch = dc_ev.channel();
+        ch.release();
+
+        const ice_ev = ev_ns.RTCPeerConnectionIceEvent.fromHandle(evt_h);
+        if (ice_ev.candidate()) |cand| {
+            cand.release();
+        }
+        _ = ice_ev.url(&buf);
+
+        const ice_err_ev = ev_ns.RTCPeerConnectionIceErrorEvent.fromHandle(evt_h);
+        _ = ice_err_ev.address(&buf);
+        _ = ice_err_ev.port();
+        _ = ice_err_ev.url(&buf);
+        _ = ice_err_ev.errorCode();
+        _ = ice_err_ev.errorText(&buf);
+
+        const ListenerCtx = struct {
+            count: u32 = 0,
+
+            fn onGeneric(self: *@This(), ev: ev_ns) void {
+                if (!ev.isNull()) self.count += 1;
+            }
+            fn onMessage(self: *@This(), ev: ev_ns.MessageEvent) void {
+                if (!ev.isNull()) self.count += 1;
+            }
+            fn onClose(self: *@This(), ev: ev_ns.CloseEvent) void {
+                if (!ev.isNull()) self.count += 1;
+            }
+            fn onIce(self: *@This(), ev: ev_ns.RTCPeerConnectionIceEvent) void {
+                if (!ev.isNull()) self.count += 1;
+            }
+            fn onIceErr(
+                self: *@This(),
+                ev: ev_ns.RTCPeerConnectionIceErrorEvent,
+            ) void {
+                if (!ev.isNull()) self.count += 1;
+            }
+            fn onDc(self: *@This(), ev: ev_ns.RTCDataChannelEvent) void {
+                if (!ev.isNull()) self.count += 1;
+            }
+        };
+
+        var ctx: ListenerCtx = .{};
+        const target_h = Mock.allocHandle("mock_rtc_target");
+        defer target_h.release();
+
+        const pc = webapi.WebRTC.RTCPeerConnection{ .handle = target_h };
+        pc.addEventListener("icecandidate", ListenerCtx, &ctx, ListenerCtx.onIce);
+        pc.addEventListener(
+            "icecandidateerror",
+            ListenerCtx,
+            &ctx,
+            ListenerCtx.onIceErr,
+        );
+        pc.addEventListener("datachannel", ListenerCtx, &ctx, ListenerCtx.onDc);
+        pc.addEventListener(
+            "connectionstatechange",
+            ListenerCtx,
+            &ctx,
+            ListenerCtx.onGeneric,
+        );
+        pc.addEventListenerOwned(
+            "icecandidate",
+            ListenerCtx,
+            &ctx,
+            ListenerCtx.onIce,
+        );
+
+        const dc = webapi.WebRTC.RTCDataChannel{ .handle = target_h };
+        dc.addEventListener("open", ListenerCtx, &ctx, ListenerCtx.onGeneric);
+        dc.addEventListener("message", ListenerCtx, &ctx, ListenerCtx.onMessage);
+        dc.addEventListener("close", ListenerCtx, &ctx, ListenerCtx.onClose);
+        dc.addEventListenerOwned(
+            "message",
+            ListenerCtx,
+            &ctx,
+            ListenerCtx.onMessage,
+        );
+
+        const ws = webapi.WebSocket{ .handle = target_h };
+        ws.addEventListener("open", ListenerCtx, &ctx, ListenerCtx.onGeneric);
+        ws.addEventListener("message", ListenerCtx, &ctx, ListenerCtx.onMessage);
+        ws.addEventListener("close", ListenerCtx, &ctx, ListenerCtx.onClose);
+        ws.addEventListenerOwned("close", ListenerCtx, &ctx, ListenerCtx.onClose);
+
+        const bc = webapi.BroadcastChannel{ .handle = target_h };
+        bc.addEventListener("message", ListenerCtx, &ctx, ListenerCtx.onMessage);
+        bc.addEventListenerOwned(
+            "message",
+            ListenerCtx,
+            &ctx,
+            ListenerCtx.onMessage,
+        );
+    }
+    try Mock.assertNoHandleLeaks();
+}

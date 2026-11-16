@@ -41,22 +41,42 @@ pub fn close(self: BroadcastChannel) void {
     self.handle.call("close", .{}, void);
 }
 
+/// Attaches a context-bound listener receiving `webapi.Event.EventFor(event)`.
 pub fn addEventListener(
     self: @This(),
     comptime event: []const u8,
     comptime T: type,
     ctx: *T,
-    f: *const fn (*T, zjb.Handle) void,
+    comptime f: *const fn (*T, webapi.Event.EventFor(event)) void,
 ) void {
-    webapi.boundEventListener(T, event, self.handle, f, ctx);
+    std.debug.assert(!self.handle.isNull());
+    std.debug.assert(event.len > 0);
+    webapi.boundEventListenerTyped(
+        T,
+        webapi.Event.EventFor(event),
+        event,
+        self.handle,
+        f,
+        ctx,
+    );
 }
 
+/// Attaches an owned-handle typed listener receiving `webapi.Event.EventFor(event)`.
 pub fn addEventListenerOwned(
     self: @This(),
     comptime event: []const u8,
     comptime T: type,
     ctx: *T,
-    f: *const fn (*T, zjb.Handle) void,
+    comptime f: *const fn (*T, webapi.Event.EventFor(event)) void,
 ) void {
-    webapi.boundEventListenerOwned(T, event, self.handle, f, ctx);
+    std.debug.assert(!self.handle.isNull());
+    std.debug.assert(event.len > 0);
+    webapi.boundEventListenerTypedOwned(
+        T,
+        webapi.Event.EventFor(event),
+        event,
+        self.handle,
+        f,
+        ctx,
+    );
 }

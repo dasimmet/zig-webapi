@@ -9,14 +9,21 @@ const webapi = @import("webapi.zig");
 pub const BeforeInstallPromptEvent =
     @import("Event/BeforeInstallPromptEvent.zig");
 pub const ClipboardEvent = @import("Event/ClipboardEvent.zig");
+pub const CloseEvent = @import("Event/CloseEvent.zig");
 pub const FocusEvent = @import("Event/FocusEvent.zig");
 pub const HashChangeEvent = @import("Event/HashChangeEvent.zig");
 pub const InputEvent = @import("Event/InputEvent.zig");
 pub const KeyboardEvent = @import("Event/KeyboardEvent.zig");
 pub const MediaQueryListEvent = @import("Event/MediaQueryListEvent.zig");
+pub const MessageEvent = @import("Event/MessageEvent.zig");
 pub const MouseEvent = @import("Event/MouseEvent.zig");
 pub const PointerEvent = @import("Event/PointerEvent.zig");
 pub const PopStateEvent = @import("Event/PopStateEvent.zig");
+pub const RTCDataChannelEvent = @import("Event/RTCDataChannelEvent.zig");
+pub const RTCPeerConnectionIceErrorEvent =
+    @import("Event/RTCPeerConnectionIceErrorEvent.zig");
+pub const RTCPeerConnectionIceEvent =
+    @import("Event/RTCPeerConnectionIceEvent.zig");
 pub const SubmitEvent = @import("Event/SubmitEvent.zig");
 pub const TouchEvent = @import("Event/TouchEvent.zig");
 pub const WheelEvent = @import("Event/WheelEvent.zig");
@@ -145,6 +152,7 @@ pub fn currentTarget(self: Event) zjb.Handle {
 
 /// Maps a DOM event name at compile time to its typed Event wrapper struct.
 pub fn EventFor(comptime event_name: []const u8) type {
+    @setEvalBranchQuota(10000);
     const mappings = .{
         .{ "keydown", KeyboardEvent },
         .{ "keyup", KeyboardEvent },
@@ -176,6 +184,12 @@ pub fn EventFor(comptime event_name: []const u8) type {
         .{ "blur", FocusEvent },
         .{ "popstate", PopStateEvent },
         .{ "beforeinstallprompt", BeforeInstallPromptEvent },
+        .{ "message", MessageEvent },
+        .{ "messageerror", MessageEvent },
+        .{ "close", CloseEvent },
+        .{ "icecandidate", RTCPeerConnectionIceEvent },
+        .{ "icecandidateerror", RTCPeerConnectionIceErrorEvent },
+        .{ "datachannel", RTCDataChannelEvent },
     };
     inline for (mappings) |entry| {
         if (std.mem.eql(u8, event_name, entry[0])) return entry[1];
