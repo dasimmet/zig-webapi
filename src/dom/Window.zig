@@ -6,6 +6,7 @@ const std = @import("std");
 const webapi = @import("../webapi.zig");
 const Document = @import("Document.zig");
 const History = @import("History.zig");
+const LaunchQueue = @import("LaunchQueue.zig");
 const Location = @import("Location.zig");
 const MediaQueryList = @import("MediaQueryList.zig");
 const Navigator = @import("Navigator.zig");
@@ -100,6 +101,20 @@ pub fn visualViewport(self: Window) VisualViewport {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
     return .{ .handle = self.handle.get("visualViewport", zjb.Handle) };
+}
+
+/// Returns the LaunchQueue interface if supported by the browser, or null.
+/// https://developer.mozilla.org/en-US/docs/Web/API/Window/launchQueue
+pub fn launchQueue(self: Window) ?LaunchQueue {
+    std.debug.assert(!self.handle.isNull());
+    std.debug.assert(@backingInt(self.handle) != 0);
+    if (!webapi.hasProperty(self.handle, "launchQueue")) return null;
+    const lq_h = self.handle.get("launchQueue", zjb.Handle);
+    if (lq_h.isNull()) {
+        lq_h.release();
+        return null;
+    }
+    return .{ .handle = lq_h };
 }
 
 /// Returns the interior viewport width in CSS pixels.

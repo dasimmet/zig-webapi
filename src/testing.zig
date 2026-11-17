@@ -1020,3 +1020,91 @@ test "webapi.WebRTC, WebSocket, and BroadcastChannel typed event wrappers" {
     }
     try Mock.assertNoHandleLeaks();
 }
+
+test "dom.Window.launchQueue, LaunchQueue.setConsumer, and LaunchParams" {
+    const warmup = webapi.codec.encode(zjb.constString("").asHandle());
+    warmup.release();
+
+    Mock.reset();
+    {
+        try std.testing.expect(dom.LaunchQueue.null.isNull());
+        try std.testing.expect(dom.LaunchParams.null.isNull());
+
+        const LaunchCtx = struct {
+            calls: u32 = 0,
+            fn onLaunch(self: *@This(), params: dom.LaunchParams) void {
+                if (!params.isNull()) self.calls += 1;
+            }
+        };
+
+        var ctx: LaunchCtx = .{};
+        if (dom.window().launchQueue()) |lq| {
+            defer lq.release();
+            try std.testing.expect(!lq.isNull());
+            lq.setConsumer(LaunchCtx, &ctx, &LaunchCtx.onLaunch);
+        }
+
+        const params_h = Mock.allocHandle("mock_launch_params");
+        const params = dom.LaunchParams.fromHandle(params_h);
+        defer params.release();
+        try std.testing.expect(!params.isNull());
+
+        var url_buf: [64]u8 = undefined;
+        _ = params.targetURL(&url_buf);
+
+        if (try params.targetURLAlloc(std.testing.allocator)) |allocated| {
+            std.testing.allocator.free(allocated);
+        }
+
+        const files_h = params.files();
+        files_h.release();
+    }
+    try Mock.assertNoHandleLeaks();
+}
+
+test "dom.Navigator.getInstalledRelatedApps and RelatedApplication" {
+    const warmup = webapi.codec.encode(zjb.constString("").asHandle());
+    warmup.release();
+
+    Mock.reset();
+    {
+        try std.testing.expect(dom.RelatedApplication.null.isNull());
+
+        const AppsCtx = struct {
+            checked: bool = false,
+            fn onApps(self: *@This(), apps: dom.RelatedApplication.List) void {
+                if (!apps.isNull() and apps.len() == 0) {
+                    self.checked = true;
+                }
+            }
+        };
+
+        var ctx: AppsCtx = .{};
+        const nav = dom.window().navigator();
+        defer nav.release();
+        if (nav.getInstalledRelatedApps()) |p| {
+            defer p.release();
+            try std.testing.expect(!p.isNull());
+            p.thenFn(AppsCtx, &ctx, &AppsCtx.onApps, null);
+        }
+
+        const list_h = Mock.allocHandle("mock_related_apps");
+        var list: dom.RelatedApplication.List = .{ .handle = list_h };
+        defer list.release();
+        try std.testing.expect(!list.isNull());
+        try std.testing.expectEqual(@as(usize, 0), list.len());
+        try std.testing.expect(list.get(0) == null);
+        try std.testing.expect(list.next() == null);
+
+        const app_h = Mock.allocHandle("mock_related_app");
+        const app = dom.RelatedApplication.fromHandle(app_h);
+        defer app.release();
+        try std.testing.expect(!app.isNull());
+        var buf: [64]u8 = undefined;
+        _ = app.platform(&buf);
+        _ = app.id(&buf);
+        _ = app.url(&buf);
+        _ = app.version(&buf);
+    }
+    try Mock.assertNoHandleLeaks();
+}

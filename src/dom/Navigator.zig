@@ -5,6 +5,7 @@
 const std = @import("std");
 const webapi = @import("../webapi.zig");
 const Clipboard = @import("Clipboard.zig");
+const RelatedApplication = @import("RelatedApplication.zig");
 const ServiceWorkerContainer = @import("ServiceWorkerContainer.zig");
 
 // 2. Shortcuts on imports
@@ -50,4 +51,23 @@ pub fn serviceWorker(self: Navigator) ServiceWorkerContainer {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
     return .{ .handle = self.handle.get("serviceWorker", zjb.Handle) };
+}
+
+/// Checks whether related apps are installed and returns a typed Promise
+/// resolving to `RelatedApplication.List`, or null if unsupported.
+/// https://developer.mozilla.org/en-US/docs/Web/API/Navigator/getInstalledRelatedApps
+pub fn getInstalledRelatedApps(
+    self: Navigator,
+) ?webapi.Promise.Typed(RelatedApplication.List) {
+    std.debug.assert(!self.handle.isNull());
+    std.debug.assert(@backingInt(self.handle) != 0);
+    if (!webapi.hasProperty(self.handle, "getInstalledRelatedApps")) {
+        return null;
+    }
+    const p_h = self.handle.call("getInstalledRelatedApps", .{}, zjb.Handle);
+    if (p_h.isNull()) {
+        p_h.release();
+        return null;
+    }
+    return .fromHandle(p_h);
 }
