@@ -100,7 +100,9 @@ pub const Instance = struct {
 
         const exp = self.getExports();
         defer exp.release();
-        return webapi.hasProperty(exp, fn_name);
+        const fn_h = exp.get(fn_name, zjb.Handle);
+        defer fn_h.release();
+        return !fn_h.isNull();
     }
 
     /// Calls an exported WebAssembly function by name with typed arguments.
@@ -245,9 +247,6 @@ pub const Suspending = struct {
 
         const wasm_global = zjb.global("WebAssembly");
         if (wasm_global.isNull()) return error.JspiNotSupported;
-        if (!webapi.hasProperty(wasm_global, "Suspending")) {
-            return error.JspiNotSupported;
-        }
 
         const susp_cls = wasm_global.get("Suspending", zjb.Handle);
         defer susp_cls.release();
@@ -289,10 +288,12 @@ pub fn isJspiSupported() bool {
     std.debug.assert(@backingInt(wasm_global) != 0);
     if (wasm_global.isNull()) return false;
 
-    const has_susp = webapi.hasProperty(wasm_global, "Suspending");
-    const has_prom = webapi.hasProperty(wasm_global, "promising");
+    const susp_h = wasm_global.get("Suspending", zjb.Handle);
+    defer susp_h.release();
+    const prom_h = wasm_global.get("promising", zjb.Handle);
+    defer prom_h.release();
     std.debug.assert(!wasm_global.isNull());
-    return has_susp and has_prom;
+    return !susp_h.isNull() and !prom_h.isNull();
 }
 
 /// Wraps an exported WebAssembly function with `WebAssembly.promising(func)`

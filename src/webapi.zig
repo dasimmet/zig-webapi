@@ -18,6 +18,7 @@ pub const zjb = if (is_wasm) @import("zjb") else @import("testing/zjb.zig");
 const JsPtrInt = @Int(.signed, @bitSizeOf(usize));
 
 pub const BroadcastChannel = @import("BroadcastChannel.zig");
+const callback = @import("callback.zig");
 pub const codec = @import("codec.zig");
 pub const CompressionStream = @import("CompressionStream.zig");
 pub const console = @import("console.zig");
@@ -90,26 +91,6 @@ pub fn getUri(allocator: std.mem.Allocator) ![]u8 {
     defer href.release();
 
     return try stringFromHandleAlloc(allocator, href);
-}
-
-var _asyncFn: ?zjb.Handle = null;
-
-/// Invokes an asynchronous JavaScript function or method on `handle` via eval
-/// wrapper.
-pub fn callAsync(
-    handle: zjb.Handle,
-    comptime method: []const u8,
-    args: anytype,
-    comptime RetType: type,
-) RetType {
-    if (_asyncFn == null) {
-        const script =
-            "async (...args) => {return args[0](...(args.slice(1)))}";
-        _asyncFn = zjb.global("window").call("eval", .{
-            zjb.constString(script),
-        }, zjb.Handle);
-    }
-    return _asyncFn.call(method, .{handle} ++ args, RetType);
 }
 
 /// Encodes a JavaScript string handle `h` to UTF-8 using `TextEncoder` and
@@ -230,7 +211,7 @@ pub fn boundFunction(
     ctx: *Context,
     f: *const fn (*Context, zjb.Handle) void,
 ) zjb.Handle {
-    return bindCallback(Context, false, ctx, f);
+    return callback.bindCallback(Context, false, ctx, f);
 }
 
 /// Like boundFunction but caller owns the Handle parameter.
@@ -239,7 +220,7 @@ pub fn boundFunctionOwned(
     ctx: *Context,
     f: *const fn (*Context, zjb.Handle) void,
 ) zjb.Handle {
-    return bindCallback(Context, true, ctx, f);
+    return callback.bindCallback(Context, true, ctx, f);
 }
 
 /// Attaches a DOM event listener for `event_name` onto JS object `h`,
@@ -252,7 +233,7 @@ pub fn boundEventListener(
     f: *const fn (*Context, zjb.Handle) void,
     ctx: *Context,
 ) void {
-    attachBoundListener(Context, false, event_name, h, f, ctx);
+    callback.attachBoundListener(Context, false, event_name, h, f, ctx);
 }
 
 /// Like boundEventListener but wraps the callback into a function converting
@@ -265,7 +246,15 @@ pub fn boundEventListenerTyped(
     comptime f: *const fn (*Context, ReturnType) void,
     ctx: *Context,
 ) void {
-    attachTypedListener(Context, ReturnType, false, event_name, h, f, ctx);
+    callback.attachTypedListener(
+        Context,
+        ReturnType,
+        false,
+        event_name,
+        h,
+        f,
+        ctx,
+    );
 }
 
 /// Like boundEventListener but caller owns the Handle parameter.
@@ -276,7 +265,7 @@ pub fn boundEventListenerOwned(
     f: *const fn (*Context, zjb.Handle) void,
     ctx: *Context,
 ) void {
-    attachBoundListener(Context, true, event_name, h, f, ctx);
+    callback.attachBoundListener(Context, true, event_name, h, f, ctx);
 }
 
 /// Like `boundEventListenerTyped` but caller owns the event handle inside
@@ -289,7 +278,15 @@ pub fn boundEventListenerTypedOwned(
     comptime f: *const fn (*Context, ReturnType) void,
     ctx: *Context,
 ) void {
-    attachTypedListener(Context, ReturnType, true, event_name, h, f, ctx);
+    callback.attachTypedListener(
+        Context,
+        ReturnType,
+        true,
+        event_name,
+        h,
+        f,
+        ctx,
+    );
 }
 
 /// Creates an independent `zjb.Handle` referencing the same JS value.
@@ -302,154 +299,6 @@ pub fn retainHandle(h: zjb.Handle) zjb.Handle {
     const dup = arr.call("pop", .{}, zjb.Handle);
     std.debug.assert(!dup.isNull());
     return dup;
-}
-
-/// Checks whether property `prop` exists on JS object `obj` and its value is
-/// defined.
-pub fn hasProperty(obj: anytype, comptime prop: []const u8) bool {
-    if (@TypeOf(obj) != zjb.Handle and @TypeOf(obj) != zjb.ConstHandle) {
-        @compileError("expected a Handle or ConstHandle");
-    }
-    if (obj.isNull()) return false;
-    const prophandle: zjb.Handle = obj.get(prop, zjb.Handle);
-    defer prophandle.release();
-    return !prophandle.eql(zjb.global("undefined"));
-}
-
-/// Binds `contextTrampoline(Context)`, `ctx`, and `f` onto the shared
-/// JS callback dispatcher (`owned` controls automatic payload release).
-fn bindCallback(
-    comptime Context: type,
-    comptime owned: bool,
-    ctx: *Context,
-    f: *const fn (*Context, zjb.Handle) void,
-) zjb.Handle {
-    std.debug.assert(@intFromPtr(ctx) != 0 or @sizeOf(Context) == 0);
-    std.debug.assert(@intFromPtr(f) != 0);
-
-    const tramp_ptr: JsPtrInt = @bitCast(
-        @intFromPtr(contextTrampoline(Context)),
-    );
-    const ctx_ptr: JsPtrInt = @bitCast(@intFromPtr(ctx));
-    const fn_ptr: JsPtrInt = @bitCast(@intFromPtr(f));
-    return callback(owned).call(
-        "bind",
-        .{ zjb.Handle.null, tramp_ptr, ctx_ptr, fn_ptr },
-        zjb.Handle,
-    );
-}
-
-/// Type-erased internal trampoline signature invoked by `callback`.
-const CallbackTrampoline = *const fn (
-    *anyopaque,
-    *const anyopaque,
-    zjb.Handle,
-) void;
-
-/// Wraps `f` to construct `ReturnType` from `zjb.Handle` and attaches the
-/// listener onto JS object `h` (`owned` controls automatic payload release).
-fn attachTypedListener(
-    comptime Context: type,
-    comptime ReturnType: type,
-    comptime owned: bool,
-    comptime event_name: []const u8,
-    h: anytype,
-    comptime f: *const fn (*Context, ReturnType) void,
-    ctx: *Context,
-) void {
-    const TypeWrapper = struct {
-        fn wrap_f(inner_ctx: *Context, handle: zjb.Handle) void {
-            f(inner_ctx, .{ .handle = handle });
-        }
-    };
-    attachBoundListener(
-        Context,
-        owned,
-        event_name,
-        h,
-        &TypeWrapper.wrap_f,
-        ctx,
-    );
-}
-
-/// Binds a callback and registers it via `h.addEventListener(event_name, ...)`,
-/// immediately releasing the intermediate JS bound function handle.
-fn attachBoundListener(
-    comptime Context: type,
-    comptime owned: bool,
-    comptime event_name: []const u8,
-    h: anytype,
-    f: *const fn (*Context, zjb.Handle) void,
-    ctx: *Context,
-) void {
-    if (@TypeOf(h) != zjb.Handle and @TypeOf(h) != zjb.ConstHandle) {
-        @compileError("expected a Handle or ConstHandle");
-    }
-    std.debug.assert(event_name.len > 0);
-    std.debug.assert(!h.isNull());
-
-    const bound_f = bindCallback(Context, owned, ctx, f);
-    defer bound_f.release();
-    h.call("addEventListener", .{
-        zjb.constString(event_name),
-        bound_f,
-    }, void);
-}
-
-/// Returns an internal trampoline that recovers `*Context` and the typed
-/// callback pointer before invoking `f(ctx, payload)`.
-fn contextTrampoline(comptime Context: type) CallbackTrampoline {
-    const Helper = struct {
-        fn call(
-            ctx_raw: *anyopaque,
-            fn_raw: *const anyopaque,
-            payload: zjb.Handle,
-        ) void {
-            std.debug.assert(
-                @intFromPtr(ctx_raw) != 0 or @sizeOf(Context) == 0,
-            );
-            std.debug.assert(@intFromPtr(fn_raw) != 0);
-            const ctx: *Context = @ptrCast(@alignCast(ctx_raw));
-            const f: *const fn (*Context, zjb.Handle) void =
-                @ptrCast(@alignCast(fn_raw));
-            f(ctx, payload);
-        }
-    };
-    return &Helper.call;
-}
-
-/// Shared callback dispatcher across all context types.
-/// Exports at most two C-ABI entry points total (`webapi_callback` and
-/// `webapi_callback_owned`), delegating type recovery to `contextTrampoline`.
-fn callback(comptime owned: bool) zjb.ConstHandle {
-    const Dispatcher = struct {
-        fn call(
-            tramp_i: JsPtrInt,
-            ctxptr_i: JsPtrInt,
-            fnptr_i: JsPtrInt,
-            payload: zjb.Handle,
-        ) callconv(.c) void {
-            defer if (!owned) payload.release();
-            std.debug.assert(tramp_i != 0);
-            std.debug.assert(fnptr_i != 0);
-
-            const tramp: CallbackTrampoline = @ptrFromInt(
-                @as(usize, @bitCast(tramp_i)),
-            );
-            const ctx_raw: *anyopaque = @ptrFromInt(
-                @as(usize, @bitCast(ctxptr_i)),
-            );
-            const fn_raw: *const anyopaque = @ptrFromInt(
-                @as(usize, @bitCast(fnptr_i)),
-            );
-            tramp(ctx_raw, fn_raw, payload);
-        }
-    };
-
-    return zjb.fnHandle(
-        if (owned) "webapi_callback_owned" else "webapi_callback",
-        &Dispatcher.call,
-    );
 }
 
 test {

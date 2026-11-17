@@ -61,7 +61,9 @@ pub fn getInstalledRelatedApps(
 ) ?webapi.Promise.Typed(RelatedApplication.List) {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
-    if (!webapi.hasProperty(self.handle, "getInstalledRelatedApps")) {
+    const fn_h = self.handle.get("getInstalledRelatedApps", zjb.Handle);
+    defer fn_h.release();
+    if (fn_h.isNull()) {
         return null;
     }
     const p_h = self.handle.call("getInstalledRelatedApps", .{}, zjb.Handle);

@@ -68,17 +68,24 @@ pub const ObjectStore = struct {
         ) catch return null;
 
         var mtime: u64 = default_mtime;
-        if (has_data_field and
-            webapi.hasProperty(val_h, "mtime_lo") and
-            webapi.hasProperty(val_h, "mtime_hi"))
-        {
-            const lo: u32 = @bitCast(val_h.get("mtime_lo", i32));
-            const hi: u32 = @bitCast(val_h.get("mtime_hi", i32));
-            mtime = (@as(u64, hi) << 32) | lo;
-        } else if (has_data_field and webapi.hasProperty(val_h, "mtime")) {
-            const mt = val_h.get("mtime", f64);
-            if (mt > 0.0 and mt < 1.8e19) {
-                mtime = @intFromFloat(mt);
+        if (has_data_field) {
+            const lo_h = val_h.get("mtime_lo", zjb.Handle);
+            defer lo_h.release();
+            const hi_h = val_h.get("mtime_hi", zjb.Handle);
+            defer hi_h.release();
+            if (!lo_h.isNull() and !hi_h.isNull()) {
+                const lo: u32 = @bitCast(val_h.get("mtime_lo", i32));
+                const hi: u32 = @bitCast(val_h.get("mtime_hi", i32));
+                mtime = (@as(u64, hi) << 32) | lo;
+            } else {
+                const mt_h = val_h.get("mtime", zjb.Handle);
+                defer mt_h.release();
+                if (!mt_h.isNull()) {
+                    const mt = val_h.get("mtime", f64);
+                    if (mt > 0.0 and mt < 1.8e19) {
+                        mtime = @intFromFloat(mt);
+                    }
+                }
             }
         }
 
@@ -274,7 +281,9 @@ pub const Transaction = struct {
     pub fn commit(self: Transaction) void {
         std.debug.assert(!self.handle.isNull());
         std.debug.assert(@backingInt(self.handle) != 0);
-        if (webapi.hasProperty(self.handle, "commit")) {
+        const commit_fn = self.handle.get("commit", zjb.Handle);
+        defer commit_fn.release();
+        if (!commit_fn.isNull()) {
             self.handle.call("commit", .{}, void);
         }
     }

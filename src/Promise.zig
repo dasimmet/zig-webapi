@@ -139,12 +139,12 @@ pub fn Typed(comptime T: type) type {
                     const okh = on_ok orelse return;
                     if (T == void) {
                         okh(inner_ctx);
-                    } else if (T == i32) {
+                    } else if (T == i32 or T == i64 or T == f32 or T == f64) {
                         const num_fn = zjb.global("Number");
                         const code = num_fn.call(
                             "call",
                             .{ zjb.Handle.null, handle },
-                            i32,
+                            T,
                         );
                         okh(inner_ctx, code);
                     } else {
