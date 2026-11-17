@@ -103,7 +103,7 @@ pub fn ports(self: MessageEvent) zjb.Handle {
 
 /// Returns the `MessagePort` at `idx` in `event.ports`, or null if out of bounds.
 /// https://developer.mozilla.org/en-US/docs/Web/API/MessageEvent/ports
-pub fn portAt(self: MessageEvent, idx: usize) ?webapi.MessagePort {
+pub fn portAt(self: MessageEvent, idx: usize) ?webapi.Worker.MessagePort {
     std.debug.assert(!self.handle.isNull());
     const ports_h = self.ports();
     if (ports_h.isNull()) return null;

@@ -1152,9 +1152,9 @@ test "webapi.Worker, SharedWorker, MessageChannel, and Worker global scopes" {
     Mock.reset();
     {
         const Worker = webapi.Worker;
-        const SharedWorker = webapi.SharedWorker;
-        const MessageChannel = webapi.MessageChannel;
-        const MessagePort = webapi.MessagePort;
+        const SharedWorker = Worker.SharedWorker;
+        const MessageChannel = Worker.MessageChannel;
+        const MessagePort = Worker.MessagePort;
         const DedicatedScope = Worker.DedicatedWorkerGlobalScope;
         const SharedScope = Worker.SharedWorkerGlobalScope;
 
