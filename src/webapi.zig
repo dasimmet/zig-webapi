@@ -47,7 +47,7 @@ pub fn PseudoRandomNumberGenerator() std.Random.DefaultPrng {
     var rng = std.Random.DefaultPrng.init(123456789);
     const useed = Crypto.global().random(u64);
 
-    std.log.info("Random Number Generator Seed: {d}", .{useed});
+    std.log.debug("PseudoRandomNumberGenerator() Seed: {d}", .{useed});
     rng.seed(useed);
     return rng;
 }
