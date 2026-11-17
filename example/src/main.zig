@@ -51,6 +51,7 @@ const App = struct {
     tint: [3]f32 = .{ 1.0, 0.85, 0.55 },
     click_count: u32 = 0,
     wasi: ?*webapi.Wasi = null,
+    worker: webapi.Worker = .null,
 
     fn init(allocator: std.mem.Allocator) !*App {
         const doc = dom.document();
@@ -450,6 +451,77 @@ const App = struct {
         dom.document().setElemText("crypto-output", "Web Crypto failed (see console).");
     }
 
+    fn onWorkerSendClick(self: *App, _: Event.PointerEvent) void {
+        if (!webapi.Worker.isSupported()) {
+            dom.document().setElemText(
+                "worker-output",
+                "Web Workers are not supported in this environment.",
+            );
+            return;
+        }
+
+        if (self.worker.isNull()) {
+            const w = webapi.Worker.init("worker.js", .{
+                .type = .module,
+                .name = "zig-worker",
+            });
+            if (w.isNull()) {
+                dom.document().setElemText("worker-output", "Failed to start Worker.");
+                return;
+            }
+            w.addEventListener("message", App, self, onWorkerMessage);
+            w.addEventListener("error", App, self, onWorkerError);
+            self.worker = w;
+            dom.document().setElemText("worker-output", "Starting worker.wasm...");
+        }
+
+        const doc = dom.document();
+        var input_owned: ?[]u8 = null;
+        defer if (input_owned) |buf| self.allocator.free(buf);
+
+        var input: []const u8 = "hello from main thread";
+        if (doc.getElementById("text-input")) |el| {
+            defer el.release();
+            if (el.getValueAlloc(self.allocator) catch null) |val| {
+                input_owned = val;
+                if (val.len > 0) input = val;
+            }
+        }
+
+        self.worker.postText(input);
+    }
+
+    fn onWorkerTerminateClick(self: *App, _: Event.PointerEvent) void {
+        if (self.worker.isNull()) {
+            dom.document().setElemText("worker-output", "No active worker.");
+            return;
+        }
+        self.worker.terminate();
+        self.worker.release();
+        self.worker = .null;
+        dom.document().setElemText("worker-output", "Worker terminated.");
+    }
+
+    fn onWorkerMessage(_: *App, ev: Event.MessageEvent) void {
+        const data_h = ev.data();
+        defer data_h.release();
+        var buf: [1024]u8 = undefined;
+        const text = webapi.stringFromHandle(data_h, &buf);
+        dom.document().setElemText("worker-output", text);
+    }
+
+    fn onWorkerError(_: *App, ev: Event.ErrorEvent) void {
+        var msg_buf: [256]u8 = undefined;
+        const msg = ev.message(&msg_buf);
+        var out_buf: [320]u8 = undefined;
+        const text = std.fmt.bufPrint(
+            &out_buf,
+            "Worker error (line {d}): {s}",
+            .{ ev.lineno(), if (msg.len > 0) msg else "unknown error" },
+        ) catch "Worker error (see console).";
+        dom.document().setElemText("worker-output", text);
+    }
+
     fn bindUi(self: *App) void {
         const doc = dom.document();
 
@@ -468,6 +540,14 @@ const App = struct {
         if (doc.getElementById("btn-wasi")) |btn| {
             defer btn.release();
             btn.addEventListener("click", App, self, onWasiClick);
+        }
+        if (doc.getElementById("btn-worker-send")) |btn| {
+            defer btn.release();
+            btn.addEventListener("click", App, self, onWorkerSendClick);
+        }
+        if (doc.getElementById("btn-worker-terminate")) |btn| {
+            defer btn.release();
+            btn.addEventListener("click", App, self, onWorkerTerminateClick);
         }
         if (doc.getElementById("btn-crypto-uuid")) |btn| {
             defer btn.release();

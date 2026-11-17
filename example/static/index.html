@@ -59,6 +59,15 @@
       </div>
       <pre id="wasi-output">Click "Run wasi_hello.wasm" to run a WASI binary in-browser.</pre>
     </section>
+
+    <section class="panel">
+      <h2>Web Workers (<code>Worker</code> + <code>DedicatedWorkerGlobalScope</code>)</h2>
+      <div class="row">
+        <button id="btn-worker-send" type="button">Send to Worker</button>
+        <button id="btn-worker-terminate" type="button">Terminate Worker</button>
+      </div>
+      <pre id="worker-output">Click "Send to Worker" to run Zig WASM in a background Web Worker.</pre>
+    </section>
   </main>
 
   <script type="module" src="index.js"></script>

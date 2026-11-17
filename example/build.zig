@@ -62,6 +62,40 @@ pub fn build(b: *std.Build) void {
     const js_install = b.addInstallFile(zjb_bindings, "www/zjb_bindings.js");
     b.default_step.dependOn(&js_install.step);
 
+    const worker_exe = b.addExecutable(.{
+        .name = "worker",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/worker.zig"),
+            .target = wasm_target,
+            .optimize = optimize,
+            .strip = false,
+            .imports = &.{
+                .{
+                    .name = "webapi",
+                    .module = webapi_mod,
+                },
+            },
+        }),
+    });
+    worker_exe.rdynamic = true;
+
+    const worker_zjb = webapi_pkg.bindgen(b, .{
+        .wasm = worker_exe.getEmittedBin(),
+        .basename = "worker_zjb.js",
+        .classname = "Zjb",
+        .module_style = .es6,
+        .minify = optimize != .debug,
+    });
+
+    const worker_wasm_install = b.addInstallFile(
+        worker_exe.getEmittedBin(),
+        "www/worker.wasm",
+    );
+    b.default_step.dependOn(&worker_wasm_install.step);
+
+    const worker_js_install = b.addInstallFile(worker_zjb, "www/worker_zjb.js");
+    b.default_step.dependOn(&worker_js_install.step);
+
     const static_install = b.addInstallDirectory(.{
         .source_dir = b.path("static"),
         .install_dir = .prefix,

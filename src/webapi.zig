@@ -36,6 +36,7 @@ pub const WebAssembly = @import("WebAssembly.zig");
 pub const WebGL = @import("WebGL.zig");
 pub const WebRTC = @import("WebRTC.zig");
 pub const WebSocket = @import("WebSocket.zig");
+pub const Worker = @import("Worker.zig");
 
 pub const fetch = Fetch.fetch;
 pub const crypto = Crypto.global;

@@ -84,3 +84,38 @@ pub fn lastEventId(self: MessageEvent, buf: []u8) []const u8 {
     defer id_h.release();
     return webapi.stringFromHandle(id_h, buf);
 }
+
+/// Returns an owned JS handle to the `MessageEventSource` that sent the message.
+/// https://developer.mozilla.org/en-US/docs/Web/API/MessageEvent/source
+pub fn source(self: MessageEvent) zjb.Handle {
+    std.debug.assert(!self.handle.isNull());
+    std.debug.assert(@backingInt(self.handle) != 0);
+    return self.handle.get("source", zjb.Handle);
+}
+
+/// Returns an owned JS handle to the array of transferred `MessagePort` objects.
+/// https://developer.mozilla.org/en-US/docs/Web/API/MessageEvent/ports
+pub fn ports(self: MessageEvent) zjb.Handle {
+    std.debug.assert(!self.handle.isNull());
+    std.debug.assert(@backingInt(self.handle) != 0);
+    return self.handle.get("ports", zjb.Handle);
+}
+
+/// Returns the `MessagePort` at `idx` in `event.ports`, or null if out of bounds.
+/// https://developer.mozilla.org/en-US/docs/Web/API/MessageEvent/ports
+pub fn portAt(self: MessageEvent, idx: usize) ?webapi.MessagePort {
+    std.debug.assert(!self.handle.isNull());
+    const ports_h = self.ports();
+    if (ports_h.isNull()) return null;
+    defer ports_h.release();
+
+    const raw_len = ports_h.get("length", i32);
+    if (raw_len <= 0 or idx >= @as(usize, @intCast(raw_len))) return null;
+
+    const port_h = ports_h.indexGet(@as(i32, @intCast(idx)), zjb.Handle);
+    if (port_h.isNull()) {
+        port_h.release();
+        return null;
+    }
+    return .{ .handle = port_h };
+}

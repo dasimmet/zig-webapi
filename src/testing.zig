@@ -1144,3 +1144,157 @@ test "dom.Navigator.getInstalledRelatedApps and RelatedApplication" {
     }
     try Mock.assertNoHandleLeaks();
 }
+
+test "webapi.Worker, SharedWorker, MessageChannel, and Worker global scopes" {
+    const warmup = webapi.codec.encode(zjb.constString("").asHandle());
+    warmup.release();
+
+    Mock.reset();
+    {
+        const Worker = webapi.Worker;
+        const SharedWorker = webapi.SharedWorker;
+        const MessageChannel = webapi.MessageChannel;
+        const MessagePort = webapi.MessagePort;
+        const DedicatedScope = Worker.DedicatedWorkerGlobalScope;
+        const SharedScope = Worker.SharedWorkerGlobalScope;
+
+        try std.testing.expect(Worker.null.isNull());
+        try std.testing.expect(SharedWorker.null.isNull());
+        try std.testing.expect(MessageChannel.null.isNull());
+        try std.testing.expect(MessagePort.null.isNull());
+        try std.testing.expect(DedicatedScope.null.isNull());
+        try std.testing.expect(SharedScope.null.isNull());
+        try std.testing.expect(Worker.WorkerLocation.null.isNull());
+        try std.testing.expect(Worker.WorkerNavigator.null.isNull());
+
+        try std.testing.expect(Worker.isSupported());
+        try std.testing.expect(SharedWorker.isSupported());
+        try std.testing.expect(MessageChannel.isSupported());
+
+        const Ctx = struct {
+            messages: u32 = 0,
+            errors: u32 = 0,
+            connects: u32 = 0,
+
+            fn onMessage(self: *@This(), ev: webapi.Event.MessageEvent) void {
+                const d = ev.data();
+                d.release();
+                const s = ev.source();
+                s.release();
+                if (ev.portAt(0)) |p| p.release();
+                self.messages += 1;
+            }
+
+            fn onError(self: *@This(), ev: webapi.Event.ErrorEvent) void {
+                var buf: [64]u8 = undefined;
+                _ = ev.message(&buf);
+                _ = ev.filename(&buf);
+                _ = ev.lineno();
+                _ = ev.colno();
+                const err_v = ev.errorValue();
+                err_v.release();
+                self.errors += 1;
+            }
+
+            fn onConnect(self: *@This(), ev: webapi.Event.MessageEvent) void {
+                if (ev.portAt(0)) |p| {
+                    defer p.release();
+                    p.start();
+                }
+                self.connects += 1;
+            }
+        };
+        var ctx: Ctx = .{};
+
+        const w = Worker.init("worker.js", .{
+            .type = .module,
+            .credentials = .@"same-origin",
+            .name = "calc",
+        });
+        defer w.release();
+        try std.testing.expect(!w.isNull());
+        w.addEventListener("message", Ctx, &ctx, &Ctx.onMessage);
+        w.addEventListener("error", Ctx, &ctx, &Ctx.onError);
+        w.postText("hello worker");
+        w.postBytes(&.{ 1, 2, 3, 4 });
+        w.terminate();
+
+        const w_plain = Worker.init("classic.js", null);
+        defer w_plain.release();
+        try std.testing.expect(!w_plain.isNull());
+
+        const sw = SharedWorker.init("shared.js", .{
+            .type = .module,
+            .name = "shared-bus",
+        });
+        defer sw.release();
+        try std.testing.expect(!sw.isNull());
+        sw.addEventListener("error", Ctx, &ctx, &Ctx.onError);
+        const sw_port = sw.port();
+        defer sw_port.release();
+        sw_port.start();
+        sw_port.addEventListener("message", Ctx, &ctx, &Ctx.onMessage);
+        sw_port.postText("ping");
+        sw_port.postBytes("raw");
+        sw_port.close();
+
+        const ch = MessageChannel.init();
+        defer ch.release();
+        const p1 = ch.port1();
+        defer p1.release();
+        const p2 = ch.port2();
+        defer p2.release();
+        p1.start();
+        p2.start();
+        p1.postText("via channel");
+        p1.close();
+        p2.close();
+
+        const d_scope = DedicatedScope.global();
+        try std.testing.expect(!d_scope.isNull());
+        var buf: [64]u8 = undefined;
+        _ = d_scope.name(&buf);
+        const w_loc = d_scope.location();
+        defer w_loc.release();
+        _ = w_loc.getHref(&buf);
+        _ = w_loc.getOrigin(&buf);
+        _ = w_loc.getProtocol(&buf);
+        _ = w_loc.getHost(&buf);
+        _ = w_loc.getHostname(&buf);
+        _ = w_loc.getPort(&buf);
+        _ = w_loc.getPathname(&buf);
+        _ = w_loc.getSearch(&buf);
+        _ = w_loc.getHash(&buf);
+
+        const w_nav = d_scope.navigator();
+        defer w_nav.release();
+        _ = w_nav.hardwareConcurrency();
+        _ = w_nav.onLine();
+        _ = w_nav.userAgent(&buf);
+        _ = w_nav.language(&buf);
+        _ = w_nav.platform(&buf);
+        const storage_h = w_nav.storage();
+        storage_h.release();
+        const locks_h = w_nav.locks();
+        locks_h.release();
+
+        d_scope.addEventListener("message", Ctx, &ctx, &Ctx.onMessage);
+        d_scope.postText("reply");
+        d_scope.postBytes("bytes");
+        d_scope.importScripts(&.{ "a.js", "b.js" });
+        d_scope.close();
+
+        const s_scope = SharedScope.global();
+        try std.testing.expect(!s_scope.isNull());
+        _ = s_scope.name(&buf);
+        s_scope.addEventListener("connect", Ctx, &ctx, &Ctx.onConnect);
+        s_scope.close();
+
+        const err_h = Mock.allocHandle("mock_error_event");
+        const err_ev = webapi.Event.ErrorEvent.fromHandle(err_h);
+        defer err_ev.release();
+        ctx.onError(err_ev);
+        try std.testing.expectEqual(@as(u32, 1), ctx.errors);
+    }
+    try Mock.assertNoHandleLeaks();
+}

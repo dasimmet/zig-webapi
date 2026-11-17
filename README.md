@@ -33,6 +33,7 @@ All modules are re-exported from [`src/webapi.zig`](src/webapi.zig):
 | `webapi.WebRTC` | [`src/WebRTC.zig`](src/WebRTC.zig) | `RTCPeerConnection`, `RTCDataChannel`, `RTCSessionDescription`, `RTCIceCandidate`, `RTCConfiguration`, and `RTCIceServer`. |
 | `webapi.WebSocket` | [`src/WebSocket.zig`](src/WebSocket.zig) | `WebSocket` wrapper with `ReadyState` and typed listener attachment. |
 | `webapi.BroadcastChannel` | [`src/BroadcastChannel.zig`](src/BroadcastChannel.zig) | Cross-tab / worker `BroadcastChannel` wrapper. |
+| `webapi.Worker` | [`src/Worker.zig`](src/Worker.zig) | Web Workers API: `Worker`, `SharedWorker`, `MessagePort`, `MessageChannel`, `DedicatedWorkerGlobalScope`, `SharedWorkerGlobalScope`, `WorkerNavigator`, `WorkerLocation`. |
 | `webapi.WebAssembly` | [`src/WebAssembly.zig`](src/WebAssembly.zig) | `Module`, `Instance`, `Memory`, `validate`, `compile`, `instantiate`, `instantiateAsync`, and JSPI (`Suspending`, `isJspiSupported`, `promising`). |
 | `webapi.Wasi` | [`src/Wasi.zig`](src/Wasi.zig) | Pure-Zig WASI Snapshot Preview 1 runtime for running WASM binaries in the browser with in-memory, `.tar`, and `IndexedDb`-backed filesystems ([`src/Wasi/FileSystem.zig`](src/Wasi/FileSystem.zig)). |
 | `webapi.testing` | [`src/testing.zig`](src/testing.zig) | Host-side unit tests and handle-leak checks powered by [`src/testing/zjb.zig`](src/testing/zjb.zig). |

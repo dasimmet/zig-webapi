@@ -10,6 +10,7 @@ pub const BeforeInstallPromptEvent =
     @import("Event/BeforeInstallPromptEvent.zig");
 pub const ClipboardEvent = @import("Event/ClipboardEvent.zig");
 pub const CloseEvent = @import("Event/CloseEvent.zig");
+pub const ErrorEvent = @import("Event/ErrorEvent.zig");
 pub const FocusEvent = @import("Event/FocusEvent.zig");
 pub const HashChangeEvent = @import("Event/HashChangeEvent.zig");
 pub const InputEvent = @import("Event/InputEvent.zig");
@@ -194,6 +195,7 @@ pub fn EventFor(comptime event_name: []const u8) type {
         .{ "beforeinstallprompt", BeforeInstallPromptEvent },
         .{ "message", MessageEvent },
         .{ "messageerror", MessageEvent },
+        .{ "connect", MessageEvent },
         .{ "close", CloseEvent },
         .{ "icecandidate", RTCPeerConnectionIceEvent },
         .{ "icecandidateerror", RTCPeerConnectionIceErrorEvent },
