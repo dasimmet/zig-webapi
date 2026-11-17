@@ -276,34 +276,110 @@ pub const RTCPeerConnection = struct {
         };
     }
 
-    pub fn createOffer(self: RTCPeerConnection) zjb.Handle {
-        return self.handle.call("createOffer", .{}, zjb.Handle);
+    /// Creates an SDP offer and invokes `on_ok` with the resulting
+    /// `RTCSessionDescription` (or `on_err` on rejection).
+    /// https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/createOffer
+    pub inline fn createOffer(
+        self: RTCPeerConnection,
+        comptime Context: type,
+        ctx: *Context,
+        comptime on_ok: ?*const fn (*Context, RTCSessionDescription) void,
+        on_err: ?*const fn (*Context, zjb.Handle) void,
+    ) void {
+        self.callPromiseMethod(
+            "createOffer",
+            .{},
+            RTCSessionDescription,
+            Context,
+            ctx,
+            on_ok,
+            on_err,
+        );
     }
 
-    pub fn createAnswer(self: RTCPeerConnection) zjb.Handle {
-        return self.handle.call("createAnswer", .{}, zjb.Handle);
+    /// Creates an SDP answer and invokes `on_ok` with the resulting
+    /// `RTCSessionDescription` (or `on_err` on rejection).
+    /// https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/createAnswer
+    pub inline fn createAnswer(
+        self: RTCPeerConnection,
+        comptime Context: type,
+        ctx: *Context,
+        comptime on_ok: ?*const fn (*Context, RTCSessionDescription) void,
+        on_err: ?*const fn (*Context, zjb.Handle) void,
+    ) void {
+        self.callPromiseMethod(
+            "createAnswer",
+            .{},
+            RTCSessionDescription,
+            Context,
+            ctx,
+            on_ok,
+            on_err,
+        );
     }
 
-    pub fn setLocalDescription(
+    /// Sets the local session description and invokes `on_ok` when applied
+    /// (or `on_err` on rejection).
+    /// https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/setLocalDescription
+    pub inline fn setLocalDescription(
         self: RTCPeerConnection,
         desc: RTCSessionDescription,
-    ) zjb.Handle {
-        return self.handle.call(
+        comptime Context: type,
+        ctx: *Context,
+        comptime on_ok: ?*const fn (*Context) void,
+        on_err: ?*const fn (*Context, zjb.Handle) void,
+    ) void {
+        self.callPromiseMethod(
             "setLocalDescription",
             .{desc.handle},
-            zjb.Handle,
+            void,
+            Context,
+            ctx,
+            on_ok,
+            on_err,
         );
     }
 
-    pub fn setRemoteDescription(
+    /// Sets the remote session description and invokes `on_ok` when applied
+    /// (or `on_err` on rejection).
+    /// https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/setRemoteDescription
+    pub inline fn setRemoteDescription(
         self: RTCPeerConnection,
         desc: RTCSessionDescription,
-    ) zjb.Handle {
-        return self.handle.call(
+        comptime Context: type,
+        ctx: *Context,
+        comptime on_ok: ?*const fn (*Context) void,
+        on_err: ?*const fn (*Context, zjb.Handle) void,
+    ) void {
+        self.callPromiseMethod(
             "setRemoteDescription",
             .{desc.handle},
-            zjb.Handle,
+            void,
+            Context,
+            ctx,
+            on_ok,
+            on_err,
         );
+    }
+
+    inline fn callPromiseMethod(
+        self: RTCPeerConnection,
+        comptime method: []const u8,
+        args: anytype,
+        comptime ResType: type,
+        comptime Context: type,
+        ctx: *Context,
+        comptime on_ok: ?*const webapi.Promise.Typed(ResType).OkFn(Context),
+        on_err: ?*const fn (*Context, zjb.Handle) void,
+    ) void {
+        std.debug.assert(!self.handle.isNull());
+        std.debug.assert(@backingInt(self.handle) != 0);
+        const p_h = self.handle.call(method, args, zjb.Handle);
+        const p = webapi.Promise.Typed(ResType).fromHandle(p_h);
+        defer p.release();
+        if (on_ok != null or on_err != null) {
+            p.thenFn(Context, ctx, on_ok, on_err);
+        }
     }
 
     pub fn connectionState(self: RTCPeerConnection) ConnectionState {

@@ -1017,6 +1017,42 @@ test "webapi.WebRTC, WebSocket, and BroadcastChannel typed event wrappers" {
             &ctx,
             ListenerCtx.onMessage,
         );
+
+        const SdpCtx = struct {
+            sdp_calls: u32 = 0,
+            void_calls: u32 = 0,
+            err_calls: u32 = 0,
+
+            fn onSdp(
+                self: *@This(),
+                desc: webapi.WebRTC.RTCSessionDescription,
+            ) void {
+                if (!desc.isNull()) self.sdp_calls += 1;
+            }
+            fn onApplied(self: *@This()) void {
+                self.void_calls += 1;
+            }
+            fn onErr(self: *@This(), _: zjb.Handle) void {
+                self.err_calls += 1;
+            }
+        };
+
+        var sdp_ctx: SdpCtx = .{};
+        const desc = webapi.WebRTC.RTCSessionDescription.create(
+            "offer",
+            "v=0",
+        );
+        defer desc.release();
+        pc.createOffer(SdpCtx, &sdp_ctx, &SdpCtx.onSdp, &SdpCtx.onErr);
+        pc.createAnswer(SdpCtx, &sdp_ctx, &SdpCtx.onSdp, null);
+        pc.setLocalDescription(
+            desc,
+            SdpCtx,
+            &sdp_ctx,
+            &SdpCtx.onApplied,
+            null,
+        );
+        pc.setRemoteDescription(desc, SdpCtx, &sdp_ctx, null, null);
     }
     try Mock.assertNoHandleLeaks();
 }

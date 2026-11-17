@@ -108,7 +108,6 @@ pub fn visualViewport(self: Window) VisualViewport {
 pub fn launchQueue(self: Window) ?LaunchQueue {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
-    if (!webapi.hasProperty(self.handle, "launchQueue")) return null;
     const lq_h = self.handle.get("launchQueue", zjb.Handle);
     if (lq_h.isNull()) {
         lq_h.release();
