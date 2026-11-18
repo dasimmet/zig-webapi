@@ -210,7 +210,7 @@ pub fn bytesFromHandle(
 pub fn boundFunction(
     comptime Context: type,
     ctx: *Context,
-    f: *const fn (*Context, zjb.Handle) void,
+    comptime f: *const fn (*Context, zjb.Handle) void,
 ) zjb.Handle {
     return callback.bindCallback(Context, false, ctx, f);
 }
@@ -219,7 +219,7 @@ pub fn boundFunction(
 pub fn boundFunctionOwned(
     comptime Context: type,
     ctx: *Context,
-    f: *const fn (*Context, zjb.Handle) void,
+    comptime f: *const fn (*Context, zjb.Handle) void,
 ) zjb.Handle {
     return callback.bindCallback(Context, true, ctx, f);
 }
@@ -231,7 +231,7 @@ pub fn boundEventListener(
     Context: type,
     comptime event_name: []const u8,
     h: anytype,
-    f: *const fn (*Context, zjb.Handle) void,
+    comptime f: *const fn (*Context, zjb.Handle) void,
     ctx: *Context,
 ) void {
     callback.attachBoundListener(Context, false, event_name, h, f, ctx);
@@ -263,7 +263,7 @@ pub fn boundEventListenerOwned(
     Context: type,
     comptime event_name: []const u8,
     h: anytype,
-    f: *const fn (*Context, zjb.Handle) void,
+    comptime f: *const fn (*Context, zjb.Handle) void,
     ctx: *Context,
 ) void {
     callback.attachBoundListener(Context, true, event_name, h, f, ctx);

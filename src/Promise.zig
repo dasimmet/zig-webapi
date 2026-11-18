@@ -66,12 +66,12 @@ pub fn then(
 /// Attaches Zig fulfillment and rejection callbacks bound to `ctx` via
 /// `.then(ok, err)`. Payloads are released automatically after invocation.
 /// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/then
-pub fn thenFn(
+pub inline fn thenFn(
     self: @This(),
     comptime Context: type,
     ctx: *Context,
-    on_ok: ?*const fn (*Context, zjb.Handle) void,
-    on_err: ?*const fn (*Context, zjb.Handle) void,
+    comptime on_ok: ?*const fn (*Context, zjb.Handle) void,
+    comptime on_err: ?*const fn (*Context, zjb.Handle) void,
 ) void {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@intFromPtr(ctx) != 0);
@@ -129,7 +129,7 @@ pub fn Typed(comptime T: type) type {
             comptime Context: type,
             ctx: *Context,
             comptime on_ok: ?*const OkFn(Context),
-            on_err: ?*const fn (*Context, zjb.Handle) void,
+            comptime on_err: ?*const fn (*Context, zjb.Handle) void,
         ) void {
             std.debug.assert(!self.promise.isNull());
             std.debug.assert(@intFromPtr(ctx) != 0);
@@ -153,7 +153,12 @@ pub fn Typed(comptime T: type) type {
                 }
             };
 
-            self.promise.thenFn(Context, ctx, &TypeWrapper.okWrapper, on_err);
+            self.promise.thenFn(
+                Context,
+                ctx,
+                if (on_ok != null) &TypeWrapper.okWrapper else null,
+                on_err,
+            );
         }
 
         /// Releases the underlying JavaScript `Promise` handle.

@@ -631,22 +631,48 @@ test "webapi shared callback dispatcher and trampolines" {
                 _ = h;
                 self.count += 1;
             }
+            fn onOther(self: *@This(), h: zjb.Handle) void {
+                _ = h;
+                self.count += 2;
+            }
         };
         const EmptyCtx = struct {
             fn onEmpty(_: *@This(), _: zjb.Handle) void {}
         };
 
         var state: State = .{};
+        var state2: State = .{};
         var empty: EmptyCtx = .{};
         const target = Mock.allocHandle("mock_target");
         defer target.release();
 
+        const callback = @import("callback.zig");
+        const m1 = callback.memoizeCallback(State, false, &State.onCall);
+        const m2 = callback.memoizeCallback(State, false, &State.onCall);
+        const m_other = callback.memoizeCallback(State, false, &State.onOther);
+        const m_owned = callback.memoizeCallback(State, true, &State.onCall);
+        const m_empty = callback.memoizeCallback(
+            EmptyCtx,
+            false,
+            &EmptyCtx.onEmpty,
+        );
+        try std.testing.expect(!m1.isNull());
+        try std.testing.expectEqual(m1, m2);
+        try std.testing.expect(m1 != m_other);
+        try std.testing.expect(m1 != m_owned);
+        try std.testing.expect(m1 != m_empty);
+        try std.testing.expectEqual(@as(u32, 1), Mock.unreleased_count);
+
         const f1 = webapi.boundFunction(State, &state, &State.onCall);
-        f1.release();
+        defer f1.release();
+        const f1b = webapi.boundFunction(State, &state2, &State.onCall);
+        defer f1b.release();
+        try std.testing.expect(@backingInt(f1) != @backingInt(f1b));
+
         const f2 = webapi.boundFunctionOwned(State, &state, &State.onCall);
-        f2.release();
+        defer f2.release();
         const f3 = webapi.boundFunction(EmptyCtx, &empty, &EmptyCtx.onEmpty);
-        f3.release();
+        defer f3.release();
 
         webapi.boundEventListener(
             State,

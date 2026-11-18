@@ -1941,7 +1941,6 @@ fn wasi_idb_lookup_exec(
         AsyncIdbContext.onError,
     );
     defer cb_err.release();
-
     ctx.req.set("onsuccess", cb_ok);
     ctx.req.set("onerror", cb_err);
 }

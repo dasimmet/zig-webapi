@@ -75,6 +75,7 @@ pub const StorageMock = struct {
 pub const Mock = struct {
     pub const RESERVED_HANDLES = 16;
     pub var next_handle_id: i32 = RESERVED_HANDLES;
+    pub var next_const_handle_id: i32 = -RESERVED_HANDLES;
     pub var allocated: [MAX_HANDLES]bool = @splat(false);
     pub var labels: [MAX_HANDLES][]const u8 = @splat("");
     pub var strings: [MAX_HANDLES]StringEntry = @splat(.{});
@@ -90,6 +91,7 @@ pub const Mock = struct {
         @memset(&labels, "");
         @memset(&array_views, null);
         next_handle_id = RESERVED_HANDLES;
+        next_const_handle_id = -RESERVED_HANDLES;
         unreleased_count = 0;
         double_free_count = 0;
         local_storage.clear();
@@ -341,6 +343,10 @@ pub const Mock = struct {
         _ = args;
         if (RetType == Handle) {
             return allocHandle("const_call:" ++ method);
+        } else if (RetType == ConstHandle) {
+            const id = next_const_handle_id;
+            next_const_handle_id -= 1;
+            return @fromBackingInt(id);
         } else if (RetType == bool) {
             return false;
         } else if (RetType == i32 or RetType == i64) {

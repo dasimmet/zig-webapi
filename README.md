@@ -1,6 +1,6 @@
 # webapi
 
-Type-safe Zig WebAssembly browser and WASI API wrappers around [`zig-javascript-bridge`](https://github.com/scottredig/zig-javascript-bridge) (`zjb`).
+Type-safe Zig WebAssembly browser and WASI API wrappers around a modified version of [`zig-javascript-bridge`](https://github.com/scottredig/zig-javascript-bridge) (`zjb`).
 
 - **Landing Page**: <https://dasimmet.github.io/zig-webapi/>
 - **API Documentation**: <https://dasimmet.github.io/zig-webapi/docs/>

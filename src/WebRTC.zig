@@ -284,7 +284,7 @@ pub const RTCPeerConnection = struct {
         comptime Context: type,
         ctx: *Context,
         comptime on_ok: ?*const fn (*Context, RTCSessionDescription) void,
-        on_err: ?*const fn (*Context, zjb.Handle) void,
+        comptime on_err: ?*const fn (*Context, zjb.Handle) void,
     ) void {
         self.callPromiseMethod(
             "createOffer",
@@ -305,7 +305,7 @@ pub const RTCPeerConnection = struct {
         comptime Context: type,
         ctx: *Context,
         comptime on_ok: ?*const fn (*Context, RTCSessionDescription) void,
-        on_err: ?*const fn (*Context, zjb.Handle) void,
+        comptime on_err: ?*const fn (*Context, zjb.Handle) void,
     ) void {
         self.callPromiseMethod(
             "createAnswer",
@@ -327,7 +327,7 @@ pub const RTCPeerConnection = struct {
         comptime Context: type,
         ctx: *Context,
         comptime on_ok: ?*const fn (*Context) void,
-        on_err: ?*const fn (*Context, zjb.Handle) void,
+        comptime on_err: ?*const fn (*Context, zjb.Handle) void,
     ) void {
         self.callPromiseMethod(
             "setLocalDescription",
@@ -349,7 +349,7 @@ pub const RTCPeerConnection = struct {
         comptime Context: type,
         ctx: *Context,
         comptime on_ok: ?*const fn (*Context) void,
-        on_err: ?*const fn (*Context, zjb.Handle) void,
+        comptime on_err: ?*const fn (*Context, zjb.Handle) void,
     ) void {
         self.callPromiseMethod(
             "setRemoteDescription",
@@ -370,7 +370,7 @@ pub const RTCPeerConnection = struct {
         comptime Context: type,
         ctx: *Context,
         comptime on_ok: ?*const webapi.Promise.Typed(ResType).OkFn(Context),
-        on_err: ?*const fn (*Context, zjb.Handle) void,
+        comptime on_err: ?*const fn (*Context, zjb.Handle) void,
     ) void {
         std.debug.assert(!self.handle.isNull());
         std.debug.assert(@backingInt(self.handle) != 0);
