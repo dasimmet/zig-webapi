@@ -10,27 +10,12 @@ pub const Options = struct {
 
 /// downloads bytes as a file from the browser
 pub fn bytes(opt: Options) void {
-    const bytes_array = zjb.u8ArrayView(opt.bytes);
-    defer bytes_array.release();
-
-    const blob_array = zjb.global("Array").new(.{bytes_array});
-    defer blob_array.release();
-
-    const mime = zjb.string(opt.mimetype);
-    defer mime.release();
-
-    const blobarg = zjb.global("Object").new(.{});
-    defer blobarg.release();
-    blobarg.set("type", mime);
-
-    const bytes_blob = zjb.global("Blob").new(.{ blob_array, blobarg });
+    const bytes_blob = webapi.Blob.fromBytes(opt.bytes, .{
+        .type = opt.mimetype,
+    });
     defer bytes_blob.release();
 
-    const bytes_url = zjb.global("URL").call(
-        "createObjectURL",
-        .{bytes_blob},
-        zjb.Handle,
-    );
+    const bytes_url = webapi.URL.createObjectURL(bytes_blob);
     defer bytes_url.release();
 
     const fname = zjb.string(opt.filename);

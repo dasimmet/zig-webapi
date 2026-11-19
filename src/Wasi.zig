@@ -210,11 +210,9 @@ pub fn getImportObject(self: *Wasi) zjb.Handle {
     std.debug.assert(@intFromPtr(self) != 0);
     std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
 
-    const has_mounts = self.fs.indexed_fs_mounts.items.len > 0;
+    const needs_jspi = self.fs.needsAsyncIdb() and WebAssembly.isJspiSupported();
     if (!self.import_object.isNull()) {
-        if (has_mounts and !self.import_object_has_mounts and
-            WebAssembly.isJspiSupported())
-        {
+        if (needs_jspi != self.import_object_has_mounts) {
             self.import_object.release();
             self.import_object = .null;
         } else {
@@ -257,7 +255,7 @@ pub fn getImportObject(self: *Wasi) zjb.Handle {
     self.setBound(wasi_obj, "fd_readdir", &wasi_fd_readdir);
 
     var hooked_jspi = false;
-    if (has_mounts and WebAssembly.isJspiSupported()) {
+    if (needs_jspi) {
         const susp_open_fn = self.bindMethod(
             "wasi_path_open_suspending",
             &wasi_path_open_suspending,
@@ -314,7 +312,7 @@ pub fn getImportObject(self: *Wasi) zjb.Handle {
     import_obj.set("wasi_snapshot_preview1", wasi_obj);
     wasi_obj.release();
     self.import_object = import_obj;
-    self.import_object_has_mounts = has_mounts;
+    self.import_object_has_mounts = hooked_jspi;
     return import_obj;
 }
 
@@ -352,7 +350,7 @@ pub fn startPromise(self: *Wasi) !webapi.Promise.Typed(void) {
     std.debug.assert(!self.instance.isNull());
     std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
 
-    const use_jspi = self.fs.indexed_fs_mounts.items.len > 0 and
+    const use_jspi = self.fs.needsAsyncIdb() and
         WebAssembly.isJspiSupported();
     return self.startRawPromise(use_jspi, true);
 }
@@ -1289,9 +1287,7 @@ fn wasi_fd_close(ctx_ptr: i32, fd: i32) callconv(.c) i32 {
     std.debug.assert(@intFromPtr(wasi.allocator.vtable) != 0);
 
     if (wasi.fs.fds.fetchRemove(fd)) |entry| {
-        if (!entry.value.is_dir and
-            (entry.value.was_written or entry.value.is_write))
-        {
+        if (!entry.value.is_dir and entry.value.was_written) {
             wasi.fs.saveIndexedFsOnClose(entry.value.path);
         }
         wasi.fs.allocator.free(entry.value.path);
@@ -1424,6 +1420,7 @@ fn completePathOpen(
     const is_dir_req = (oflags & WASI_O_DIRECTORY) != 0;
     const is_excl = (oflags & WASI_O_EXCL) != 0;
     const is_trunc = (oflags & WASI_O_TRUNC) != 0;
+    const existed_before = is_dir or (file != null);
     const is_write = (fs_rights_base & WASI_RIGHT_FD_WRITE) != 0 or
         is_creat or is_trunc;
 
@@ -1456,7 +1453,7 @@ fn completePathOpen(
         .pos = 0,
         .flags = fdflags,
         .is_write = is_write,
-        .was_written = is_creat or is_trunc,
+        .was_written = (!existed_before and is_creat) or is_trunc,
     }) catch {
         wasi.fs.allocator.free(dup_norm);
         return 29;

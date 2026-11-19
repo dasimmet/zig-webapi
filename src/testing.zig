@@ -1324,3 +1324,104 @@ test "webapi.Worker, SharedWorker, MessageChannel, and Worker global scopes" {
     }
     try Mock.assertNoHandleLeaks();
 }
+
+test "webapi.Blob and webapi.URL wrappers release handles without leaks" {
+    const warmup = webapi.codec.encode(zjb.constString("").asHandle());
+    warmup.release();
+
+    Mock.reset();
+    {
+        const Blob = webapi.Blob;
+        const URL = webapi.URL;
+
+        try std.testing.expect(Blob.null.isNull());
+        try std.testing.expect(URL.null.isNull());
+        try std.testing.expect(URL.SearchParams.null.isNull());
+        try std.testing.expect(Blob.isSupported());
+        try std.testing.expect(URL.isSupported());
+
+        const b1 = Blob.fromBytes("hello", .{
+            .type = "text/plain",
+            .endings = .transparent,
+        });
+        defer b1.release();
+        try std.testing.expect(!b1.isNull());
+        _ = b1.size();
+        var buf: [64]u8 = undefined;
+        _ = b1.mimeType(&buf);
+
+        const b2 = Blob.fromText("world", null);
+        defer b2.release();
+        const b_slice = b2.slice(0, 3, "text/plain");
+        defer b_slice.release();
+        const b_slice2 = b2.slice(1, null, null);
+        defer b_slice2.release();
+
+        const p_text = b1.text();
+        p_text.release();
+        const p_ab = b1.arrayBuffer();
+        p_ab.release();
+        const p_bytes = b1.bytes();
+        p_bytes.release();
+        const stream_h = b1.stream();
+        stream_h.release();
+
+        const obj_url = URL.createObjectURL(b1);
+        URL.revokeObjectURL(obj_url);
+        obj_url.release();
+        URL.revokeObjectURL("blob:https://example.com/123");
+
+        const u = URL.init("/path?a=1#frag", "https://example.com");
+        defer u.release();
+        try std.testing.expect(!u.isNull());
+        _ = URL.canParse("https://example.com", null);
+        if (URL.parse("https://example.com/x", null)) |parsed| {
+            parsed.release();
+        }
+        _ = u.getHref(&buf);
+        u.setHref("https://example.com/y");
+        _ = u.getOrigin(&buf);
+        _ = u.getProtocol(&buf);
+        u.setProtocol("https:");
+        _ = u.getUsername(&buf);
+        u.setUsername("user");
+        _ = u.getPassword(&buf);
+        u.setPassword("pass");
+        _ = u.getHost(&buf);
+        u.setHost("example.com");
+        _ = u.getHostname(&buf);
+        u.setHostname("example.com");
+        _ = u.getPort(&buf);
+        u.setPort("443");
+        _ = u.getPathname(&buf);
+        u.setPathname("/z");
+        _ = u.getSearch(&buf);
+        u.setSearch("?k=v");
+        _ = u.getHash(&buf);
+        u.setHash("#top");
+        _ = u.toString(&buf);
+        _ = u.toJSON(&buf);
+
+        const sp = u.searchParams();
+        defer sp.release();
+        _ = sp.size();
+        sp.append("x", "1");
+        sp.set("y", "2");
+        _ = sp.has("x");
+        if (sp.get("x", &buf)) |_| {}
+        sp.sort();
+        sp.delete("x");
+        _ = sp.toString(&buf);
+
+        const sp2 = URL.SearchParams.init("a=1&b=2");
+        defer sp2.release();
+
+        const resp = webapi.Fetch.Response{
+            .handle = Mock.allocHandle("mock_resp"),
+        };
+        defer resp.handle.release();
+        const blob_p = resp.blob();
+        blob_p.release();
+    }
+    try Mock.assertNoHandleLeaks();
+}

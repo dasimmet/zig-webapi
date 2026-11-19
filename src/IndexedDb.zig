@@ -224,11 +224,25 @@ pub const ObjectStore = struct {
         return self.handle.call("getAllKeys", .{}, zjb.Handle);
     }
 
+    /// Requests all keys in the store matching `query` (`IDBKeyRange` or key).
+    pub fn getAllKeysQuery(self: ObjectStore, query: zjb.Handle) zjb.Handle {
+        std.debug.assert(!self.handle.isNull());
+        std.debug.assert(!query.isNull());
+        return self.handle.call("getAllKeys", .{query}, zjb.Handle);
+    }
+
     /// Requests all values in the store returning an IDBRequest handle.
     pub fn getAll(self: ObjectStore) zjb.Handle {
         std.debug.assert(!self.handle.isNull());
         std.debug.assert(@backingInt(self.handle) != 0);
         return self.handle.call("getAll", .{}, zjb.Handle);
+    }
+
+    /// Requests all values in the store matching `query` (`IDBKeyRange` or key).
+    pub fn getAllQuery(self: ObjectStore, query: zjb.Handle) zjb.Handle {
+        std.debug.assert(!self.handle.isNull());
+        std.debug.assert(!query.isNull());
+        return self.handle.call("getAll", .{query}, zjb.Handle);
     }
 };
 

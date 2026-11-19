@@ -150,9 +150,7 @@ pub fn resetFds(self: *FileSystem) void {
 
     var fdit = self.fds.iterator();
     while (fdit.next()) |entry| {
-        if (!entry.value_ptr.is_dir and
-            (entry.value_ptr.was_written or entry.value_ptr.is_write))
-        {
+        if (!entry.value_ptr.is_dir and entry.value_ptr.was_written) {
             self.saveIndexedFsOnClose(entry.value_ptr.path);
         }
         self.allocator.free(entry.value_ptr.path);
@@ -314,12 +312,18 @@ pub fn addIndexedFsMountPoint(
     errdefer self.allocator.free(dup_db);
     const dup_store = try self.allocator.dupe(u8, mount_point.store_name);
     errdefer self.allocator.free(dup_store);
+    const dup_preload: ?[]const u8 = if (mount_point.preload_path) |pp|
+        try self.allocator.dupe(u8, pp)
+    else
+        null;
+    errdefer if (dup_preload) |pp| self.allocator.free(pp);
 
     const index = self.indexed_fs_mounts.items.len;
     try self.indexed_fs_mounts.append(self.allocator, .{
         .dir_path = dup_dir,
         .db_name = dup_db,
         .store_name = dup_store,
+        .preload_path = dup_preload,
         .checked_paths = std.StringHashMap(void).init(self.allocator),
         .mock_entries = std.StringHashMap(FileEntry).init(self.allocator),
     });
@@ -330,7 +334,15 @@ pub fn addIndexedFsMountPoint(
     }
 
     if (builtin.is_test) {
-        self.indexed_fs_mounts.items[index].is_ready = true;
+        const m = &self.indexed_fs_mounts.items[index];
+        if (m.preload_path) |pp| {
+            if (self.resolvePreloadPrefix(m.dir_path, pp) catch null) |prefix| {
+                m.addPreloadedPrefix(self.allocator, prefix) catch {
+                    self.allocator.free(prefix);
+                };
+            }
+        }
+        m.is_ready = true;
         return;
     }
 
@@ -567,6 +579,11 @@ pub fn clearIndexedFsMountPoint(
             }
             m.mock_entries.clearRetainingCapacity();
 
+            for (m.preloaded_prefixes.items) |p| {
+                self.allocator.free(p);
+            }
+            m.preloaded_prefixes.clearRetainingCapacity();
+
             if (!m.db.isNull() and m.db.containsStore(m.store_name)) {
                 const tx = m.db.transaction(m.store_name, .readwrite);
                 defer tx.release();
@@ -597,8 +614,10 @@ pub fn applyIdbResult(
             result_h,
             self.nextTimestampNs(),
         )) |entry| {
-            defer self.allocator.free(entry.data);
-            self.writeFileWithMtime(path, entry.data, entry.mtime) catch {};
+            self.putFileOwnedWithMtime(path, entry.data, entry.mtime) catch {
+                self.allocator.free(entry.data);
+                return;
+            };
             return;
         }
     }
@@ -614,10 +633,127 @@ pub fn findAsyncIndexedFsMount(
     std.debug.assert(@intFromPtr(self) != 0);
 
     const m = self.findIndexedFsMountPoint(norm) orelse return null;
-    if (indexedFsStoreKey(norm, m.dir_path) == null) return null;
+    const store_key = indexedFsStoreKey(norm, m.dir_path) orelse return null;
+    if (m.isStoreKeyPreloaded(store_key)) return null;
     if (m.checked_paths.contains(norm)) return null;
     if (m.db.isNull() or !m.db.containsStore(m.store_name)) return null;
     return m;
+}
+
+/// Returns true if any active IndexedFs mount still requires lazy async IDB
+/// lookups because it was not fully preloaded into memory.
+pub fn needsAsyncIdb(self: *const FileSystem) bool {
+    std.debug.assert(@intFromPtr(self) != 0);
+    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
+
+    for (self.indexed_fs_mounts.items) |*m| {
+        if (!m.isFullyPreloaded()) return true;
+    }
+    return false;
+}
+
+/// Batch-preloads entries for the IndexedFs mount at `dir_path`, optionally
+/// restricted to `path_filter` (`null` or `dir_path` preloads the full mount).
+/// Returns true if preload completed (tests) or an async preload started.
+pub fn preloadIndexedFs(
+    self: *FileSystem,
+    dir_path: []const u8,
+    path_filter: ?[]const u8,
+) !bool {
+    std.debug.assert(dir_path.len > 0);
+    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
+
+    const norm_dir = try self.normalizePath(dir_path);
+    defer self.allocator.free(norm_dir);
+
+    var mount_idx: ?usize = null;
+    for (self.indexed_fs_mounts.items, 0..) |m, i| {
+        if (std.mem.eql(u8, norm_dir, m.dir_path)) {
+            mount_idx = i;
+            break;
+        }
+    }
+    const idx = mount_idx orelse return error.IndexedFsMountNotFound;
+    const m = &self.indexed_fs_mounts.items[idx];
+
+    const target = path_filter orelse m.dir_path;
+    const prefix = (try self.resolvePreloadPrefix(
+        m.dir_path,
+        target,
+    )) orelse return false;
+    errdefer self.allocator.free(prefix);
+
+    if (builtin.is_test) {
+        var mit = m.mock_entries.iterator();
+        while (mit.next()) |entry| {
+            const store_key = entry.key_ptr.*;
+            if (!storeKeyMatchesPrefix(store_key, prefix)) continue;
+
+            var path_buf: [2048]u8 = undefined;
+            const sep = if (m.dir_path.len == 1 and m.dir_path[0] == '/')
+                ""
+            else
+                "/";
+            const full_path = std.fmt.bufPrint(
+                &path_buf,
+                "{s}{s}{s}",
+                .{ m.dir_path, sep, store_key },
+            ) catch continue;
+            try self.writeFileWithMtime(
+                full_path,
+                entry.value_ptr.data,
+                entry.value_ptr.mtime,
+            );
+        }
+        try m.addPreloadedPrefix(self.allocator, prefix);
+        return true;
+    }
+
+    if (m.db.isNull() or !m.db.containsStore(m.store_name)) {
+        self.allocator.free(prefix);
+        return false;
+    }
+    if (!IndexedFsPreloadContext.start(self, idx, m.db, prefix)) {
+        self.allocator.free(prefix);
+        return false;
+    }
+    return true;
+}
+
+/// Writes or overwrites a file taking ownership of `owned_data`.
+pub fn putFileOwnedWithMtime(
+    self: *FileSystem,
+    path: []const u8,
+    owned_data: []u8,
+    mtime: u64,
+) !void {
+    std.debug.assert(path.len > 0);
+    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
+
+    const norm = try self.normalizePath(path);
+    defer self.allocator.free(norm);
+
+    const gop = try self.files.getOrPut(norm);
+    if (gop.found_existing) {
+        self.allocator.free(gop.value_ptr.data);
+        gop.value_ptr.* = .{
+            .data = owned_data,
+            .mtime = mtime,
+        };
+    } else {
+        const dup_path = self.allocator.dupe(u8, norm) catch |err| {
+            _ = self.files.remove(norm);
+            return err;
+        };
+        gop.key_ptr.* = dup_path;
+        gop.value_ptr.* = .{
+            .data = owned_data,
+            .mtime = mtime,
+        };
+    }
+
+    self.unmarkPathChecked(norm);
+    try self.ensureParentDirs(norm);
 }
 
 /// Writes or overwrites a file in the virtual FS with explicit mtime.
@@ -630,33 +766,9 @@ pub fn writeFileWithMtime(
     std.debug.assert(path.len > 0);
     std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
 
-    const norm = try self.normalizePath(path);
-    defer self.allocator.free(norm);
-
     const dup_data = try self.allocator.dupe(u8, data);
     errdefer self.allocator.free(dup_data);
-
-    const gop = try self.files.getOrPut(norm);
-    if (gop.found_existing) {
-        self.allocator.free(gop.value_ptr.data);
-        gop.value_ptr.* = .{
-            .data = dup_data,
-            .mtime = mtime,
-        };
-    } else {
-        const dup_path = self.allocator.dupe(u8, norm) catch |err| {
-            _ = self.files.remove(norm);
-            return err;
-        };
-        gop.key_ptr.* = dup_path;
-        gop.value_ptr.* = .{
-            .data = dup_data,
-            .mtime = mtime,
-        };
-    }
-
-    self.unmarkPathChecked(norm);
-    try self.ensureParentDirs(norm);
+    try self.putFileOwnedWithMtime(path, dup_data, mtime);
 }
 
 /// Writes or overwrites a file in the virtual filesystem.
@@ -780,6 +892,11 @@ pub fn mountTar(
         .file_name_buffer = &file_name_buffer,
         .link_name_buffer = &link_name_buffer,
     });
+    // Derive a deterministic timestamp from the archive bytes so unchanged
+    // `/lib` archives keep stable mtimes across reloads without risking stale
+    // cache hits when the archive changes.
+    const mtime_ns: u64 =
+        1_000_000_000 + (std.hash.Wyhash.hash(0, tar_bytes) & 0xFFFF_FFFF);
 
     while (try it.next()) |file| {
         switch (file.kind) {
@@ -807,17 +924,21 @@ pub fn mountTar(
                 defer self.allocator.free(full_path);
 
                 if (file.size == 0) {
-                    try self.writeFile(full_path, &.{});
+                    try self.writeFileWithMtime(full_path, &.{}, mtime_ns);
                 } else {
                     const file_data = try self.allocator.alloc(
                         u8,
                         @intCast(file.size),
                     );
-                    defer self.allocator.free(file_data);
+                    errdefer self.allocator.free(file_data);
 
                     var out_w: std.Io.Writer = .fixed(file_data);
                     try it.streamRemaining(file, &out_w);
-                    try self.writeFile(full_path, file_data);
+                    try self.putFileOwnedWithMtime(
+                        full_path,
+                        file_data,
+                        mtime_ns,
+                    );
                 }
             },
             else => {},
@@ -839,6 +960,11 @@ pub const Preopen = union(enum) {
         path: []const u8,
         db_name: []const u8,
         store_name: []const u8,
+        /// Optional path prefix selecting files to batch-preload into memory
+        /// when mounting (e.g. `"/cache"` preloads the full mount,
+        /// `"/cache/global"` or `"global"` preloads only matching entries, and
+        /// `null` disables eager preloading).
+        preload_path: ?[]const u8 = null,
     };
 
     /// Configures a tar-backed preopened directory.
@@ -868,10 +994,50 @@ pub const ActiveIndexedFsMountPoint = struct {
     dir_path: []const u8,
     db_name: []const u8,
     store_name: []const u8,
+    preload_path: ?[]const u8 = null,
+    preloaded_prefixes: std.ArrayListUnmanaged([]const u8) = .empty,
     db: webapi.IndexedDb.Database = .null,
     checked_paths: std.StringHashMap(void),
     mock_entries: std.StringHashMap(FileEntry),
     is_ready: bool = false,
+
+    /// Records `owned_prefix` as preloaded (takes ownership on success).
+    pub fn addPreloadedPrefix(
+        self: *ActiveIndexedFsMountPoint,
+        allocator: std.mem.Allocator,
+        owned_prefix: []const u8,
+    ) !void {
+        std.debug.assert(@intFromPtr(self) != 0);
+        std.debug.assert(@intFromPtr(allocator.vtable) != 0);
+
+        for (self.preloaded_prefixes.items) |existing| {
+            if (std.mem.eql(u8, existing, owned_prefix)) {
+                allocator.free(owned_prefix);
+                return;
+            }
+        }
+        try self.preloaded_prefixes.append(allocator, owned_prefix);
+    }
+
+    /// Returns true if `store_key` is covered by a preloaded prefix.
+    pub fn isStoreKeyPreloaded(
+        self: *const ActiveIndexedFsMountPoint,
+        store_key: []const u8,
+    ) bool {
+        std.debug.assert(store_key.len > 0);
+        for (self.preloaded_prefixes.items) |prefix| {
+            if (storeKeyMatchesPrefix(store_key, prefix)) return true;
+        }
+        return false;
+    }
+
+    /// Returns true if the entire mount has been preloaded into memory.
+    pub fn isFullyPreloaded(self: *const ActiveIndexedFsMountPoint) bool {
+        for (self.preloaded_prefixes.items) |prefix| {
+            if (prefix.len == 0) return true;
+        }
+        return false;
+    }
 
     /// Frees all mount metadata, mock entries, and cached IndexedDB handle.
     pub fn deinit(
@@ -884,6 +1050,11 @@ pub const ActiveIndexedFsMountPoint = struct {
         allocator.free(self.dir_path);
         allocator.free(self.db_name);
         allocator.free(self.store_name);
+        if (self.preload_path) |pp| allocator.free(pp);
+        for (self.preloaded_prefixes.items) |p| {
+            allocator.free(p);
+        }
+        self.preloaded_prefixes.deinit(allocator);
 
         var cit = self.checked_paths.iterator();
         while (cit.next()) |entry| {
@@ -965,7 +1136,7 @@ const IndexedFsOpenContext = struct {
 
         const m = &self.fs.indexed_fs_mounts.items[self.mount_index];
         if (opt_db) |db| {
-            m.db = db.retain();
+            if (m.db.isNull()) m.db = db.retain();
         }
         m.is_ready = true;
         if (self.fs.on_indexed_fs_mount_ready) |cb| {
@@ -984,7 +1155,42 @@ const IndexedFsOpenContext = struct {
     ) void {
         std.debug.assert(@intFromPtr(self) != 0);
         std.debug.assert(!db.isNull());
-        self.finish(db);
+
+        const m = &self.fs.indexed_fs_mounts.items[self.mount_index];
+        m.db = db.retain();
+
+        const pp = m.preload_path orelse {
+            self.finish(null);
+            return;
+        };
+
+        const prefix = (self.fs.resolvePreloadPrefix(
+            m.dir_path,
+            pp,
+        ) catch null) orelse {
+            self.finish(null);
+            return;
+        };
+
+        if (!db.containsStore(m.store_name)) {
+            m.addPreloadedPrefix(self.fs.allocator, prefix) catch {
+                self.fs.allocator.free(prefix);
+            };
+            self.finish(null);
+            return;
+        }
+
+        if (IndexedFsPreloadContext.start(
+            self.fs,
+            self.mount_index,
+            db,
+            prefix,
+        )) {
+            self.fs.allocator.destroy(self);
+            return;
+        }
+        self.fs.allocator.free(prefix);
+        self.finish(null);
     }
 
     pub fn onError(self: *IndexedFsOpenContext, _: zjb.Handle) void {
@@ -993,6 +1199,281 @@ const IndexedFsOpenContext = struct {
         self.finish(null);
     }
 };
+
+const IndexedFsPreloadContext = struct {
+    fs: *FileSystem,
+    mount_index: usize,
+    prefix: []const u8,
+    tx: webapi.IndexedDb.Transaction = .null,
+    keys_req: zjb.Handle = .null,
+    vals_req: zjb.Handle = .null,
+
+    fn start(
+        fs: *FileSystem,
+        mount_index: usize,
+        db: webapi.IndexedDb.Database,
+        owned_prefix: []const u8,
+    ) bool {
+        std.debug.assert(@intFromPtr(fs) != 0);
+        std.debug.assert(!db.isNull());
+
+        const m = &fs.indexed_fs_mounts.items[mount_index];
+        const tx = db.transaction(m.store_name, .readonly);
+        if (tx.isNull()) return false;
+
+        const store = tx.objectStore(m.store_name);
+        if (store.isNull()) {
+            tx.release();
+            return false;
+        }
+        defer store.release();
+
+        var key_range: zjb.Handle = .null;
+        defer if (!key_range.isNull()) key_range.release();
+        if (owned_prefix.len > 0) {
+            key_range = buildPrefixKeyRange(fs.allocator, owned_prefix);
+        }
+
+        const keys_req = if (!key_range.isNull())
+            store.getAllKeysQuery(key_range)
+        else
+            store.getAllKeys();
+        if (keys_req.isNull()) {
+            tx.release();
+            return false;
+        }
+
+        const vals_req = if (!key_range.isNull())
+            store.getAllQuery(key_range)
+        else
+            store.getAll();
+        if (vals_req.isNull()) {
+            keys_req.release();
+            tx.release();
+            return false;
+        }
+
+        const ctx = fs.allocator.create(IndexedFsPreloadContext) catch {
+            vals_req.release();
+            keys_req.release();
+            tx.release();
+            return false;
+        };
+        ctx.* = .{
+            .fs = fs,
+            .mount_index = mount_index,
+            .prefix = owned_prefix,
+            .tx = tx,
+            .keys_req = keys_req,
+            .vals_req = vals_req,
+        };
+
+        const cb_ok = webapi.boundFunction(
+            IndexedFsPreloadContext,
+            ctx,
+            onComplete,
+        );
+        defer cb_ok.release();
+        const cb_err = webapi.boundFunction(
+            IndexedFsPreloadContext,
+            ctx,
+            onAbortOrError,
+        );
+        defer cb_err.release();
+
+        tx.handle.set("oncomplete", cb_ok);
+        tx.handle.set("onerror", cb_err);
+        tx.handle.set("onabort", cb_err);
+        return true;
+    }
+
+    fn finish(self: *IndexedFsPreloadContext, succeeded: bool) void {
+        std.debug.assert(@intFromPtr(self) != 0);
+        std.debug.assert(@intFromPtr(self.fs) != 0);
+
+        if (!self.tx.isNull()) {
+            self.tx.handle.set("oncomplete", zjb.Handle.null);
+            self.tx.handle.set("onerror", zjb.Handle.null);
+            self.tx.handle.set("onabort", zjb.Handle.null);
+            self.tx.release();
+            self.tx = .null;
+        }
+        if (!self.keys_req.isNull()) {
+            self.keys_req.release();
+            self.keys_req = .null;
+        }
+        if (!self.vals_req.isNull()) {
+            self.vals_req.release();
+            self.vals_req = .null;
+        }
+
+        const m = &self.fs.indexed_fs_mounts.items[self.mount_index];
+        if (succeeded) {
+            m.addPreloadedPrefix(self.fs.allocator, self.prefix) catch {
+                self.fs.allocator.free(self.prefix);
+            };
+        } else {
+            self.fs.allocator.free(self.prefix);
+        }
+
+        const was_ready = m.is_ready;
+        m.is_ready = true;
+        if (!was_ready) {
+            if (self.fs.on_indexed_fs_mount_ready) |cb| {
+                cb(
+                    self.fs.indexed_fs_mount_ready_ctx orelse
+                        @ptrCast(self.fs),
+                    m.dir_path,
+                );
+            }
+        }
+        self.fs.allocator.destroy(self);
+    }
+
+    fn insertEntry(
+        self: *IndexedFsPreloadContext,
+        dir_path: []const u8,
+        key_str: []const u8,
+        val_h: zjb.Handle,
+        default_mtime: u64,
+    ) void {
+        std.debug.assert(key_str.len > 0);
+        std.debug.assert(@intFromPtr(self.fs) != 0);
+
+        var path_buf: [2048]u8 = undefined;
+        const sep = if (dir_path.len == 1 and dir_path[0] == '/') "" else "/";
+        const full_path = std.fmt.bufPrint(
+            &path_buf,
+            "{s}{s}{s}",
+            .{ dir_path, sep, key_str },
+        ) catch return;
+
+        const entry = webapi.IndexedDb.ObjectStore.decodeFileEntry(
+            self.fs.allocator,
+            val_h,
+            default_mtime,
+        ) orelse return;
+        self.fs.putFileOwnedWithMtime(
+            full_path,
+            entry.data,
+            entry.mtime,
+        ) catch {
+            self.fs.allocator.free(entry.data);
+            return;
+        };
+    }
+
+    pub fn onComplete(self: *IndexedFsPreloadContext, _: zjb.Handle) void {
+        std.debug.assert(@intFromPtr(self) != 0);
+        std.debug.assert(!self.keys_req.isNull());
+
+        const keys_arr = self.keys_req.get("result", zjb.Handle);
+        defer if (!keys_arr.isNull()) keys_arr.release();
+        const vals_arr = self.vals_req.get("result", zjb.Handle);
+        defer if (!vals_arr.isNull()) vals_arr.release();
+
+        if (!keys_arr.isNull() and !vals_arr.isNull()) {
+            const count = keys_arr.get("length", i32);
+            const m = &self.fs.indexed_fs_mounts.items[self.mount_index];
+            const default_mtime = self.fs.nextTimestampNs();
+            var i: i32 = 0;
+            while (i < count) : (i += 1) {
+                const key_h = keys_arr.indexGet(i, zjb.Handle);
+                defer key_h.release();
+                const val_h = vals_arr.indexGet(i, zjb.Handle);
+                defer val_h.release();
+
+                var key_buf: [1024]u8 = undefined;
+                const key_str = webapi.stringFromHandle(key_h, &key_buf);
+                if (key_str.len > 0 and
+                    !val_h.isNull() and
+                    storeKeyMatchesPrefix(key_str, self.prefix))
+                {
+                    self.insertEntry(
+                        m.dir_path,
+                        key_str,
+                        val_h,
+                        default_mtime,
+                    );
+                }
+            }
+        }
+
+        self.finish(true);
+    }
+
+    pub fn onAbortOrError(self: *IndexedFsPreloadContext, _: zjb.Handle) void {
+        std.debug.assert(@intFromPtr(self) != 0);
+        std.debug.assert(@intFromPtr(self.fs.allocator.vtable) != 0);
+        self.finish(false);
+    }
+};
+
+fn buildPrefixKeyRange(
+    allocator: std.mem.Allocator,
+    prefix: []const u8,
+) zjb.Handle {
+    std.debug.assert(prefix.len > 0);
+    const range_cls = zjb.ConstHandle.global.get("IDBKeyRange", zjb.Handle);
+    defer range_cls.release();
+    if (range_cls.isNull()) return .null;
+
+    const upper = std.fmt.allocPrint(
+        allocator,
+        "{s}\xef\xbf\xbf",
+        .{prefix},
+    ) catch return .null;
+    defer allocator.free(upper);
+
+    const lo_s = zjb.string(prefix);
+    defer lo_s.release();
+    const hi_s = zjb.string(upper);
+    defer hi_s.release();
+    return range_cls.call("bound", .{ lo_s, hi_s }, zjb.Handle);
+}
+
+fn resolvePreloadPrefix(
+    self: *FileSystem,
+    dir_path: []const u8,
+    preload_path: []const u8,
+) !?[]const u8 {
+    std.debug.assert(dir_path.len > 0);
+    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
+
+    if (preload_path.len == 0 or std.mem.eql(u8, preload_path, ".")) {
+        return try self.allocator.dupe(u8, "");
+    }
+
+    const norm = if (preload_path[0] == '/')
+        try self.normalizePath(preload_path)
+    else blk: {
+        const joined = try std.fs.path.join(
+            self.allocator,
+            &.{ dir_path, preload_path },
+        );
+        defer self.allocator.free(joined);
+        break :blk try self.normalizePath(joined);
+    };
+    defer self.allocator.free(norm);
+
+    if (std.mem.eql(u8, norm, dir_path) or
+        pathMatchesMountPoint(dir_path, norm))
+    {
+        return try self.allocator.dupe(u8, "");
+    }
+    if (indexedFsStoreKey(norm, dir_path)) |sub| {
+        return try self.allocator.dupe(u8, sub);
+    }
+    return null;
+}
+
+fn storeKeyMatchesPrefix(store_key: []const u8, prefix: []const u8) bool {
+    if (prefix.len == 0) return true;
+    if (std.mem.eql(u8, store_key, prefix)) return true;
+    return store_key.len > prefix.len and
+        store_key[prefix.len] == '/' and
+        std.mem.startsWith(u8, store_key, prefix);
+}
 
 fn pathMatchesMountPoint(path: []const u8, dir_path: []const u8) bool {
     std.debug.assert(path.len > 0);

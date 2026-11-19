@@ -18,6 +18,7 @@ pub const zjb = if (is_wasm) @import("zjb") else @import("testing/zjb.zig");
 const JsPtrInt = @Int(.signed, @bitSizeOf(usize));
 
 pub const BroadcastChannel = @import("BroadcastChannel.zig");
+pub const Blob = @import("Blob.zig");
 const callback = @import("callback.zig");
 pub const codec = @import("codec.zig");
 pub const CompressionStream = @import("CompressionStream.zig");
@@ -31,6 +32,7 @@ pub const Fetch = @import("Fetch.zig");
 pub const IndexedDb = @import("IndexedDb.zig");
 pub const Promise = @import("Promise.zig");
 pub const testing = @import("testing.zig");
+pub const URL = @import("URL.zig");
 pub const Wasi = @import("Wasi.zig");
 pub const WebAssembly = @import("WebAssembly.zig");
 pub const WebGL = @import("WebGL.zig");

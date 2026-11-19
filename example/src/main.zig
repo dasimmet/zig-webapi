@@ -184,8 +184,8 @@ const App = struct {
         blob.thenFn(App, self, onDiceBlob, onDiceError);
     }
 
-    fn onDiceBlob(self: *App, blob: zjb.Handle) void {
-        const url = zjb.global("URL").call("createObjectURL", .{blob}, zjb.Handle);
+    fn onDiceBlob(self: *App, blob: webapi.Blob) void {
+        const url = webapi.URL.createObjectURL(blob);
         const image = zjb.global("Image").new(.{});
         self.dice_source = .{ .image = image, .url = url };
         image.set("src", url);
@@ -197,7 +197,7 @@ const App = struct {
 
     fn releaseDiceSource(self: *App) void {
         const source = self.dice_source orelse return;
-        zjb.global("URL").call("revokeObjectURL", .{source.url}, void);
+        webapi.URL.revokeObjectURL(source.url);
         source.url.release();
         source.image.release();
         self.dice_source = null;

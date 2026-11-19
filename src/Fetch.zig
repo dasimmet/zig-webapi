@@ -194,12 +194,12 @@ pub const Response = struct {
         return .{ .handle = p };
     }
 
-    /// Reads the response body as a Blob into a Promise.
-    pub fn blob(self: Response) webapi.Promise {
+    /// Reads the response body as a Blob into a typed Promise.
+    pub fn blob(self: Response) webapi.Promise.Typed(webapi.Blob) {
         std.debug.assert(!self.handle.isNull());
         const p = self.handle.call("blob", .{}, zjb.Handle);
         std.debug.assert(!p.isNull());
-        return .{ .handle = p };
+        return .fromHandle(p);
     }
 };
 
