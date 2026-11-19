@@ -208,7 +208,7 @@ A complete interactive browser example lives in [`example/`](example/):
 
 - [`example/build.zig`](example/build.zig) & [`example/build.zig.zon`](example/build.zig.zon) — standalone package configuration consuming `webapi` via `.path = ".."`.
 - [`example/src/main.zig`](example/src/main.zig) — demonstrates `console.rootLogFn`, `PseudoRandomNumberGenerator`, `WebGL`, `requestAnimationFrame` with `boundFunction`, typed `PointerEvent` / `InputEvent` / `KeyboardEvent` listeners, `fetch` + `Promise.Typed(Response)`, `Crypto`, `Wasi`, `Worker` (via [`example/src/worker.zig`](example/src/worker.zig)), `Location.getHref`, and `download.bytes`.
-- [`example/static/`](example/static/) — HTML, CSS, ES6 module bootstrap, and `data.json`.
+- [`example/static/`](example/static/) — HTML, CSS, ES6 module bootstrap, `data.json`, and [`dice.svg`](example/static/dice.svg). The Zig example fetches the six-face SVG atlas at startup, draws it to a detached canvas, and uploads the bitmap as a WebGL texture.
 
 Build and serve it locally:
 

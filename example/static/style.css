@@ -90,7 +90,7 @@ header h1 {
   font-size: 1.1rem;
 }
 
-canvas {
+#gl-canvas {
   display: block;
   width: 100%;
   max-width: 480px;
@@ -103,7 +103,7 @@ canvas {
   cursor: grab;
 }
 
-canvas:active {
+#gl-canvas:active {
   cursor: grabbing;
 }
 

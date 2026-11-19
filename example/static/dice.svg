@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="384" height="256" viewBox="0 0 384 256">
+  <defs>
+    <linearGradient id="face" x2="0" y2="1">
+      <stop stop-color="#fffdf7"/>
+      <stop offset="1" stop-color="#ded9cc"/>
+    </linearGradient>
+    <g id="tile">
+      <rect width="128" height="128" fill="#bcb5a7"/>
+      <rect x="2" y="2" width="124" height="124" rx="8" fill="url(#face)"/>
+    </g>
+    <circle id="pip" r="10" fill="#242732"/>
+  </defs>
+  <g>
+    <use href="#tile"/>
+    <use href="#pip" x="64" y="64"/>
+  </g>
+  <g transform="translate(128 0)">
+    <use href="#tile"/>
+    <use href="#pip" x="36" y="36"/><use href="#pip" x="92" y="92"/>
+  </g>
+  <g transform="translate(256 0)">
+    <use href="#tile"/>
+    <use href="#pip" x="36" y="36"/><use href="#pip" x="64" y="64"/><use href="#pip" x="92" y="92"/>
+  </g>
+  <g transform="translate(0 128)">
+    <use href="#tile"/>
+    <use href="#pip" x="36" y="36"/><use href="#pip" x="92" y="36"/>
+    <use href="#pip" x="36" y="92"/><use href="#pip" x="92" y="92"/>
+  </g>
+  <g transform="translate(128 128)">
+    <use href="#tile"/>
+    <use href="#pip" x="36" y="36"/><use href="#pip" x="92" y="36"/>
+    <use href="#pip" x="64" y="64"/>
+    <use href="#pip" x="36" y="92"/><use href="#pip" x="92" y="92"/>
+  </g>
+  <g transform="translate(256 128)">
+    <use href="#tile"/>
+    <use href="#pip" x="36" y="36"/><use href="#pip" x="92" y="36"/>
+    <use href="#pip" x="36" y="64"/><use href="#pip" x="92" y="64"/>
+    <use href="#pip" x="36" y="92"/><use href="#pip" x="92" y="92"/>
+  </g>
+</svg>

@@ -1,14 +1,49 @@
 const std = @import("std");
 const webapi = @import("webapi");
 
-const vertex_shader_src = @embedFile("shaders/triangle.vert");
-const fragment_shader_src = @embedFile("shaders/triangle.frag");
+const vertex_shader_src = @embedFile("shaders/cube.vert");
+const fragment_shader_src = @embedFile("shaders/cube.frag");
 
 const dom = webapi.dom;
 const Event = webapi.Event;
 const Fetch = webapi.Fetch;
 const WebGL = webapi.WebGL;
 const zjb = webapi.zjb;
+
+const Vertex = extern struct {
+    pos: [3]f32,
+    uv: [2]f32,
+    normal: [3]f32,
+};
+
+const cube_vertices = vertices: {
+    // Faces are in dice.svg tile order, with opposite faces summing to seven.
+    const faces = [_]struct { normal: [3]f32, corners: [4][3]f32 }{
+        .{ .normal = .{ 0, 0, 1 }, .corners = .{ .{ -0.5, -0.5, 0.5 }, .{ 0.5, -0.5, 0.5 }, .{ 0.5, 0.5, 0.5 }, .{ -0.5, 0.5, 0.5 } } },
+        .{ .normal = .{ 0, 1, 0 }, .corners = .{ .{ -0.5, 0.5, -0.5 }, .{ -0.5, 0.5, 0.5 }, .{ 0.5, 0.5, 0.5 }, .{ 0.5, 0.5, -0.5 } } },
+        .{ .normal = .{ -1, 0, 0 }, .corners = .{ .{ -0.5, -0.5, -0.5 }, .{ -0.5, -0.5, 0.5 }, .{ -0.5, 0.5, 0.5 }, .{ -0.5, 0.5, -0.5 } } },
+        .{ .normal = .{ 1, 0, 0 }, .corners = .{ .{ 0.5, -0.5, 0.5 }, .{ 0.5, -0.5, -0.5 }, .{ 0.5, 0.5, -0.5 }, .{ 0.5, 0.5, 0.5 } } },
+        .{ .normal = .{ 0, -1, 0 }, .corners = .{ .{ -0.5, -0.5, -0.5 }, .{ 0.5, -0.5, -0.5 }, .{ 0.5, -0.5, 0.5 }, .{ -0.5, -0.5, 0.5 } } },
+        .{ .normal = .{ 0, 0, -1 }, .corners = .{ .{ 0.5, -0.5, -0.5 }, .{ -0.5, -0.5, -0.5 }, .{ -0.5, 0.5, -0.5 }, .{ 0.5, 0.5, -0.5 } } },
+    };
+    const indices = [_]usize{ 0, 1, 2, 0, 2, 3 };
+    // Sample within each tile's texel centers; the canvas uploads top row first.
+    const uv_corners = [4][2]f32{ .{ 0.5, 127.5 }, .{ 127.5, 127.5 }, .{ 127.5, 0.5 }, .{ 0.5, 0.5 } };
+    var vertices: [faces.len * indices.len]Vertex = undefined;
+    for (faces, 0..) |face, tile| {
+        const x: f32 = @floatFromInt(tile % 3 * 128);
+        const y: f32 = @floatFromInt(tile / 3 * 128);
+        for (indices, 0..) |corner, i| {
+            const uv = uv_corners[corner];
+            vertices[tile * indices.len + i] = .{
+                .pos = face.corners[corner],
+                .uv = .{ (x + uv[0]) / 384, (y + uv[1]) / 256 },
+                .normal = face.normal,
+            };
+        }
+    }
+    break :vertices vertices;
+};
 
 pub const std_options: std.Options = .{
     .logFn = webapi.console.rootLogFn,
@@ -23,7 +58,7 @@ pub fn main(init: std.process.Init.Minimal) !void {
 
     const app = try App.init(allocator);
     app.bindUi();
-    dom.window().requestAnimationFrame(app.frame_cb);
+    app.rasterizeDice();
 
     std.log.info("webapi example initialized!", .{});
 }
@@ -35,15 +70,21 @@ const App = struct {
     gl: WebGL,
     program: WebGL.Program,
     vbo: WebGL.Buffer,
+    texture: WebGL.Texture,
     pos_loc: i32,
-    u_angle: WebGL.UniformLocation,
+    uv_loc: i32,
+    normal_loc: i32,
+    u_yaw: WebGL.UniformLocation,
+    u_pitch: WebGL.UniformLocation,
     u_scale: WebGL.UniformLocation,
-    u_offset: WebGL.UniformLocation,
+    u_aspect: WebGL.UniformLocation,
+    u_dice: WebGL.UniformLocation,
     u_tint: WebGL.UniformLocation,
     frame_cb: zjb.Handle,
-    angle: f32 = 0.0,
+    dice_source: ?struct { image: zjb.Handle, url: zjb.Handle } = null,
+    yaw: f32 = 0.65,
+    pitch: f32 = -0.45,
     scale: f32 = 1.0,
-    offset: [2]f32 = .{ 0.0, 0.0 },
     dragging: bool = false,
     active_pointer_id: i32 = 0,
     last_x: f32 = 0.0,
@@ -60,6 +101,8 @@ const App = struct {
 
         const gl = try WebGL.fromCanvas(canvas);
         errdefer gl.release();
+        gl.enable(WebGL.DEPTH_TEST);
+        gl.depthFunc(WebGL.LEQUAL);
 
         const program = try gl.createProgramFromSource(
             vertex_shader_src,
@@ -70,22 +113,33 @@ const App = struct {
         const vbo = gl.createBuffer();
         errdefer vbo.release();
 
-        const vertices = [_]f32{
-            0.0,   0.65,
-            -0.58, -0.45,
-            0.58,  -0.45,
-        };
         gl.bindBuffer(WebGL.ARRAY_BUFFER, vbo);
         gl.bufferData(
             WebGL.ARRAY_BUFFER,
-            std.mem.sliceAsBytes(&vertices),
+            std.mem.sliceAsBytes(&cube_vertices),
             WebGL.STATIC_DRAW,
         );
 
+        const texture = gl.createTexture();
+        if (texture.isNull()) return error.DiceTextureCreationFailed;
+        errdefer {
+            gl.deleteTexture(texture);
+            texture.release();
+        }
+        gl.activeTexture(WebGL.TEXTURE0);
+        gl.bindTexture(WebGL.TEXTURE_2D, texture);
+        gl.texParameteri(WebGL.TEXTURE_2D, WebGL.TEXTURE_MIN_FILTER, WebGL.LINEAR);
+        gl.texParameteri(WebGL.TEXTURE_2D, WebGL.TEXTURE_MAG_FILTER, WebGL.LINEAR);
+        gl.texParameteri(WebGL.TEXTURE_2D, WebGL.TEXTURE_WRAP_S, WebGL.CLAMP_TO_EDGE);
+        gl.texParameteri(WebGL.TEXTURE_2D, WebGL.TEXTURE_WRAP_T, WebGL.CLAMP_TO_EDGE);
         const pos_loc = gl.getAttribLocation(program, "a_pos");
-        const u_angle = gl.getUniformLocation(program, "u_angle");
+        const uv_loc = gl.getAttribLocation(program, "a_uv");
+        const normal_loc = gl.getAttribLocation(program, "a_normal");
+        const u_yaw = gl.getUniformLocation(program, "u_yaw");
+        const u_pitch = gl.getUniformLocation(program, "u_pitch");
         const u_scale = gl.getUniformLocation(program, "u_scale");
-        const u_offset = gl.getUniformLocation(program, "u_offset");
+        const u_aspect = gl.getUniformLocation(program, "u_aspect");
+        const u_dice = gl.getUniformLocation(program, "u_dice");
         const u_tint = gl.getUniformLocation(program, "u_tint");
 
         const self = try allocator.create(App);
@@ -98,10 +152,15 @@ const App = struct {
             .gl = gl,
             .program = program,
             .vbo = vbo,
+            .texture = texture,
             .pos_loc = pos_loc,
-            .u_angle = u_angle,
+            .uv_loc = uv_loc,
+            .normal_loc = normal_loc,
+            .u_yaw = u_yaw,
+            .u_pitch = u_pitch,
             .u_scale = u_scale,
-            .u_offset = u_offset,
+            .u_aspect = u_aspect,
+            .u_dice = u_dice,
             .u_tint = u_tint,
             .frame_cb = .null,
         };
@@ -109,42 +168,106 @@ const App = struct {
         return self;
     }
 
+    fn rasterizeDice(self: *App) void {
+        const request = webapi.fetch("dice.svg", null);
+        defer request.release();
+        request.thenFn(App, self, onDiceResponse, onDiceError);
+    }
+
+    fn onDiceResponse(self: *App, response: Fetch.Response) void {
+        if (!response.ok()) {
+            std.log.err("Could not fetch dice.svg: HTTP {d}", .{response.status()});
+            return;
+        }
+        const blob = response.blob();
+        defer blob.release();
+        blob.thenFn(App, self, onDiceBlob, onDiceError);
+    }
+
+    fn onDiceBlob(self: *App, blob: zjb.Handle) void {
+        const url = zjb.global("URL").call("createObjectURL", .{blob}, zjb.Handle);
+        const image = zjb.global("Image").new(.{});
+        self.dice_source = .{ .image = image, .url = url };
+        image.set("src", url);
+
+        const decoded = webapi.Promise.fromHandle(image.call("decode", .{}, zjb.Handle));
+        defer decoded.release();
+        decoded.thenFn(App, self, onDiceDecoded, onDiceError);
+    }
+
+    fn releaseDiceSource(self: *App) void {
+        const source = self.dice_source orelse return;
+        zjb.global("URL").call("revokeObjectURL", .{source.url}, void);
+        source.url.release();
+        source.image.release();
+        self.dice_source = null;
+    }
+
+    fn onDiceDecoded(self: *App, _: zjb.Handle) void {
+        const image = self.dice_source.?.image;
+        defer self.releaseDiceSource();
+
+        const bitmap = dom.document().createElement("canvas");
+        defer bitmap.release();
+        bitmap.set("width", image.get("naturalWidth", i32));
+        bitmap.set("height", image.get("naturalHeight", i32));
+        const context = bitmap.handle.call("getContext", .{zjb.constString("2d")}, zjb.Handle);
+        if (context.isNull()) {
+            std.log.err("Could not create the dice bitmap's 2D context", .{});
+            return;
+        }
+        defer context.release();
+        context.call("drawImage", .{ image, @as(i32, 0), @as(i32, 0) }, void);
+
+        self.gl.bindTexture(WebGL.TEXTURE_2D, self.texture);
+        // The TexImageSource overload uploads the canvas without copying its pixels to Zig.
+        self.gl.handle.call("texImage2D", .{
+            WebGL.TEXTURE_2D, @as(i32, 0),         WebGL.RGBA,
+            WebGL.RGBA,       WebGL.UNSIGNED_BYTE, bitmap.handle,
+        }, void);
+        dom.window().requestAnimationFrame(self.frame_cb);
+    }
+
+    fn onDiceError(self: *App, err: zjb.Handle) void {
+        self.releaseDiceSource();
+        webapi.console.@"error"("Could not load the dice texture:", .{err});
+    }
+
     fn render(self: *App) void {
         const width = self.canvas.get("width", i32);
         const height = self.canvas.get("height", i32);
         self.gl.viewport(0, 0, width, height);
         self.gl.clearColor(0.08, 0.10, 0.15, 1.0);
-        self.gl.clear(WebGL.COLOR_BUFFER_BIT);
+        self.gl.clear(WebGL.COLOR_BUFFER_BIT | WebGL.DEPTH_BUFFER_BIT);
 
         self.gl.useProgram(self.program);
         self.gl.bindBuffer(WebGL.ARRAY_BUFFER, self.vbo);
-        if (self.pos_loc >= 0) {
-            self.gl.enableVertexAttribArray(self.pos_loc);
-            self.gl.vertexAttribPointer(
-                self.pos_loc,
-                2,
-                WebGL.FLOAT,
-                false,
-                0,
-                0,
-            );
-        }
-        self.gl.uniform1f(self.u_angle, self.angle);
+        self.gl.enableVertexAttribArray(self.pos_loc);
+        self.gl.vertexAttribPointer(self.pos_loc, 3, WebGL.FLOAT, false, @sizeOf(Vertex), @offsetOf(Vertex, "pos"));
+        self.gl.enableVertexAttribArray(self.uv_loc);
+        self.gl.vertexAttribPointer(self.uv_loc, 2, WebGL.FLOAT, false, @sizeOf(Vertex), @offsetOf(Vertex, "uv"));
+        self.gl.enableVertexAttribArray(self.normal_loc);
+        self.gl.vertexAttribPointer(self.normal_loc, 3, WebGL.FLOAT, false, @sizeOf(Vertex), @offsetOf(Vertex, "normal"));
+        self.gl.bindTexture(WebGL.TEXTURE_2D, self.texture);
+        self.gl.uniform1i(self.u_dice, 0);
+        self.gl.uniform1f(self.u_yaw, self.yaw);
+        self.gl.uniform1f(self.u_pitch, self.pitch);
         self.gl.uniform1f(self.u_scale, self.scale);
-        self.gl.uniform2f(self.u_offset, self.offset[0], self.offset[1]);
+        self.gl.uniform1f(
+            self.u_aspect,
+            @as(f32, @floatFromInt(width)) /
+                @as(f32, @floatFromInt(@max(height, 1))),
+        );
         self.gl.uniform3f(
             self.u_tint,
             self.tint[0],
             self.tint[1],
             self.tint[2],
         );
-        self.gl.drawArrays(WebGL.TRIANGLES, 0, 3);
+        self.gl.drawArrays(WebGL.TRIANGLES, 0, cube_vertices.len);
     }
 
     fn onFrame(self: *App, _: zjb.Handle) void {
-        if (!self.dragging) {
-            self.angle += 0.015;
-        }
         self.render();
         dom.window().requestAnimationFrame(self.frame_cb);
     }
@@ -168,9 +291,12 @@ const App = struct {
 
         const w: f32 = @floatFromInt(@max(self.canvas.get("clientWidth", i32), 1));
         const h: f32 = @floatFromInt(@max(self.canvas.get("clientHeight", i32), 1));
-        self.offset[0] = std.math.clamp(self.offset[0] + (dx * 2.0) / w, -0.85, 0.85);
-        self.offset[1] = std.math.clamp(self.offset[1] - (dy * 2.0) / h, -0.85, 0.85);
-        self.angle += dx * 0.01;
+        self.yaw += (dx * 2.0) / w;
+        self.pitch = std.math.clamp(
+            self.pitch + (dy * 2.0) / h,
+            -1.5,
+            1.5,
+        );
     }
 
     fn onWindowPointerUp(self: *App, ev: Event.PointerEvent) void {
@@ -186,7 +312,8 @@ const App = struct {
     }
 
     fn onCanvasDblClick(self: *App, _: Event.PointerEvent) void {
-        self.offset = .{ 0.0, 0.0 };
+        self.yaw = 0.65;
+        self.pitch = -0.45;
         self.scale = 1.0;
     }
 

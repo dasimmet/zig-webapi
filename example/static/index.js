@@ -33,8 +33,12 @@ async function start() {
   }
 }
 
+function launch() {
+  start().catch((error) => console.error("Could not start the WebAPI example:", error));
+}
+
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", start);
+  document.addEventListener("DOMContentLoaded", launch);
 } else {
-  start();
+  launch();
 }
