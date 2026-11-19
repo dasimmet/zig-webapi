@@ -308,12 +308,8 @@ const App = struct {
 
         const w: f32 = @floatFromInt(@max(self.canvas.get("clientWidth", i32), 1));
         const h: f32 = @floatFromInt(@max(self.canvas.get("clientHeight", i32), 1));
-        self.yaw += (dx * 2.0) / w;
-        self.pitch = std.math.clamp(
-            self.pitch + (dy * 2.0) / h,
-            -1.5,
-            1.5,
-        );
+        self.yaw = @mod(self.yaw + (dx * 2.0) / w, std.math.tau);
+        self.pitch = @mod(self.pitch + (dy * 2.0) / h, std.math.tau);
     }
 
     fn onWindowPointerUp(self: *App, ev: Event.PointerEvent) void {
