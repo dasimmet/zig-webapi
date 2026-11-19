@@ -234,6 +234,11 @@ pub fn getImportObject(self: *Wasi) zjb.Handle {
         &wasi_fd_prestat_dir_name,
     );
     self.setBound(wasi_obj, "fd_fdstat_get", &wasi_fd_fdstat_get);
+    self.setBound(
+        wasi_obj,
+        "fd_fdstat_set_flags",
+        &wasi_fd_fdstat_set_flags,
+    );
     self.setBound(wasi_obj, "fd_filestat_get", &wasi_fd_filestat_get);
     self.setBound(wasi_obj, "fd_read", &wasi_fd_read);
     self.setBound(wasi_obj, "fd_pread", &wasi_fd_pread);
@@ -956,6 +961,34 @@ fn wasi_fd_fdstat_get(
     wasi.writeTargetU64(fdstat_ptr + 8, 0x1FFFFFFFFFFFFF);
     wasi.writeTargetU64(fdstat_ptr + 16, 0x1FFFFFFFFFFFFF);
     return 0;
+}
+
+/// Updates WASI descriptor flags (`fd_fdstat_set_flags`) on `fd`.
+pub fn fdStatSetFlags(self: *Wasi, fd: i32, flags: i32) i32 {
+    std.debug.assert(@intFromPtr(self) != 0);
+    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
+
+    if (fd >= FileSystem.STDIN_FILENO and fd <= FileSystem.STDERR_FILENO) {
+        return 0;
+    }
+    const idx = fd - FileSystem.FIRST_PREOPEN_FD;
+    if (idx >= 0 and idx < self.fs.preopens.len) {
+        return 0;
+    }
+    const open_file = self.fs.fds.getPtr(fd) orelse return 8;
+    open_file.flags = flags & 0xFFFF;
+    return 0;
+}
+
+fn wasi_fd_fdstat_set_flags(
+    ctx_ptr: i32,
+    fd: i32,
+    flags: i32,
+) callconv(.c) i32 {
+    const wasi: *Wasi = @ptrFromInt(@as(usize, @bitCast(ctx_ptr)));
+    std.debug.assert(@intFromPtr(wasi) != 0);
+    std.debug.assert(@intFromPtr(wasi.allocator.vtable) != 0);
+    return wasi.fdStatSetFlags(fd, flags);
 }
 
 fn wasi_fd_filestat_get(

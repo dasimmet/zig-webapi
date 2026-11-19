@@ -1425,3 +1425,34 @@ test "webapi.Blob and webapi.URL wrappers release handles without leaks" {
     }
     try Mock.assertNoHandleLeaks();
 }
+
+test "webapi.Wasi fdStatSetFlags updates open descriptor flags" {
+    const allocator = std.testing.allocator;
+    const wasi = try webapi.Wasi.init(.{
+        .allocator = allocator,
+        .args = &.{"wasm-opt"},
+        .preopens = &.{.{ .dir = "." }},
+    });
+    defer wasi.deinit();
+
+    try std.testing.expectEqual(@as(i32, 0), wasi.fdStatSetFlags(0, 1));
+    try std.testing.expectEqual(@as(i32, 0), wasi.fdStatSetFlags(3, 1));
+    try std.testing.expectEqual(@as(i32, 8), wasi.fdStatSetFlags(999, 1));
+
+    const open_fd: i32 = 10;
+    const path = try allocator.dupe(u8, "/out.wasm");
+    try wasi.fs.fds.put(open_fd, .{
+        .path = path,
+        .is_dir = false,
+        .flags = 0,
+    });
+
+    try std.testing.expectEqual(
+        @as(i32, 0),
+        wasi.fdStatSetFlags(open_fd, 0x0001),
+    );
+    try std.testing.expectEqual(
+        @as(i32, 0x0001),
+        wasi.fs.fds.get(open_fd).?.flags,
+    );
+}
