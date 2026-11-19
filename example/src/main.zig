@@ -47,7 +47,10 @@ const cube_vertices = vertices: {
 
 pub const std_options: std.Options = .{
     .logFn = webapi.console.rootLogFn,
-    .log_level = .debug,
+    .log_level = switch (@import("builtin").optimize) {
+        .debug => .debug,
+        else => .info,
+    },
 };
 
 pub const panic = zjb.panic;
