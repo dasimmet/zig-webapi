@@ -269,24 +269,22 @@ const App = struct {
     }
 
     fn onFrame(self: *App, ts_h: zjb.Handle) void {
-        if (!ts_h.isNull()) {
-            const ts_ms = zjb.global("Number").call(
-                "call",
-                .{ zjb.Handle.null, ts_h },
-                f64,
-            );
-            if (self.last_frame_ms) |prev_ms| {
-                if (!self.dragging) {
-                    const dt: f32 = @floatCast(
-                        std.math.clamp((ts_ms - prev_ms) * 0.001, 0.0, 0.1),
-                    );
-                    self.yaw = @mod(self.yaw + dt * 0.45, std.math.tau);
-                }
+        if (ts_h.isNull()) return;
+        const ts_ms = zjb.global("Number").call(
+            "call",
+            .{ zjb.Handle.null, ts_h },
+            f64,
+        );
+        if (self.last_frame_ms) |prev_ms| {
+            if (!self.dragging) {
+                const dt: f32 = @floatCast(
+                    std.math.clamp((ts_ms - prev_ms) * 0.001, 0.0, 0.1),
+                );
+                self.yaw = @mod(self.yaw + dt * 0.45, std.math.tau);
+                self.pitch = @mod(self.pitch + dt * 0.30, std.math.tau);
             }
-            self.last_frame_ms = ts_ms;
-        } else if (!self.dragging) {
-            self.yaw = @mod(self.yaw + 0.006, std.math.tau);
         }
+        self.last_frame_ms = ts_ms;
         self.render();
         dom.window().requestAnimationFrame(self.frame_cb);
     }
