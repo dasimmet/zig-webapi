@@ -85,6 +85,7 @@ const App = struct {
     yaw: f32 = 0.65,
     pitch: f32 = -0.45,
     scale: f32 = 1.0,
+    last_frame_ms: ?f64 = null,
     dragging: bool = false,
     active_pointer_id: i32 = 0,
     last_x: f32 = 0.0,
@@ -267,7 +268,25 @@ const App = struct {
         self.gl.drawArrays(WebGL.TRIANGLES, 0, cube_vertices.len);
     }
 
-    fn onFrame(self: *App, _: zjb.Handle) void {
+    fn onFrame(self: *App, ts_h: zjb.Handle) void {
+        if (!ts_h.isNull()) {
+            const ts_ms = zjb.global("Number").call(
+                "call",
+                .{ zjb.Handle.null, ts_h },
+                f64,
+            );
+            if (self.last_frame_ms) |prev_ms| {
+                if (!self.dragging) {
+                    const dt: f32 = @floatCast(
+                        std.math.clamp((ts_ms - prev_ms) * 0.001, 0.0, 0.1),
+                    );
+                    self.yaw = @mod(self.yaw + dt * 0.45, std.math.tau);
+                }
+            }
+            self.last_frame_ms = ts_ms;
+        } else if (!self.dragging) {
+            self.yaw = @mod(self.yaw + 0.006, std.math.tau);
+        }
         self.render();
         dom.window().requestAnimationFrame(self.frame_cb);
     }

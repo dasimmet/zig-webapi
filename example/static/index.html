@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>webapi Example</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="modulepreload" as="script" type="text/javascript" href="index.js">
+  <link rel="modulepreload" as="script" type="text/javascript" href="zjb_bindings.js">
+  <link rel="preload" as="fetch" type="application/wasm" crossorigin href="example.wasm">
+  <link rel="preload" as="fetch" type="image/svg+xml" crossorigin href="dice.svg">
+  <link rel="prefetch" type="application/json" href="data.json">
+  <link rel="prefetch" type="application/wasm" href="wasi_hello.wasm">
+  <link rel="prefetch" type="text/javascript" href="worker.js">
+  <link rel="prefetch" type="text/javascript" href="worker_zjb.js">
+  <link rel="prefetch" type="application/wasm" href="worker.wasm">
 </head>
 <body>
   <main class="container">
