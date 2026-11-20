@@ -16,6 +16,7 @@ const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
+pub const @"null": PointerEvent = .{ .handle = .null };
 
 // 7. Public functions
 /// Wraps a non-null JS PointerEvent handle.
@@ -29,14 +30,14 @@ pub fn fromHandle(handle: zjb.Handle) PointerEvent {
 pub fn fromEvent(ev: Event) PointerEvent {
     std.debug.assert(!ev.isNull());
     std.debug.assert(@backingInt(ev.handle) != 0);
-    return .{ .handle = ev.handle };
+    return fromHandle(ev.handle);
 }
 
 /// Views a MouseEvent handle as a PointerEvent.
 pub fn fromMouseEvent(ev: MouseEvent) PointerEvent {
     std.debug.assert(!ev.isNull());
     std.debug.assert(@backingInt(ev.handle) != 0);
-    return .{ .handle = ev.handle };
+    return fromHandle(ev.handle);
 }
 
 /// Returns a MouseEvent view over this PointerEvent.
@@ -52,6 +53,11 @@ pub fn asEvent(self: PointerEvent) Event {
 /// Returns true if the underlying JS handle is null or undefined.
 pub fn isNull(self: PointerEvent) bool {
     return self.handle.isNull();
+}
+
+/// Releases the underlying JS handle when owned.
+pub fn release(self: PointerEvent) void {
+    self.handle.release();
 }
 
 /// Cancels default browser action (e.g. native context menu on right-click).

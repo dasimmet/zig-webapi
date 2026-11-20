@@ -14,15 +14,14 @@ const DedicatedWorkerGlobalScope = @This();
 const zjb = webapi.zjb;
 
 // 3. File-level struct members
-handle: zjb.Handle = .null,
+handle: zjb.Handle,
+pub const @"null": DedicatedWorkerGlobalScope = .{ .handle = .null };
 
 // 7. Public functions
 /// Returns a handle to the current `DedicatedWorkerGlobalScope` (`self`).
 pub fn global() DedicatedWorkerGlobalScope {
     const h = zjb.ConstHandle.global.asHandle();
-    std.debug.assert(!h.isNull());
-    std.debug.assert(@backingInt(h) != 0);
-    return .{ .handle = h };
+    return fromHandle(h);
 }
 
 /// Wraps a non-null JS DedicatedWorkerGlobalScope handle.
@@ -58,7 +57,7 @@ pub fn name(self: DedicatedWorkerGlobalScope, buf: []u8) []u8 {
 pub fn location(self: DedicatedWorkerGlobalScope) WorkerLocation {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
-    return .{ .handle = self.handle.get("location", zjb.Handle) };
+    return WorkerLocation.fromHandle(self.handle.get("location", zjb.Handle));
 }
 
 /// Returns the `WorkerNavigator` associated with this worker.
@@ -66,7 +65,7 @@ pub fn location(self: DedicatedWorkerGlobalScope) WorkerLocation {
 pub fn navigator(self: DedicatedWorkerGlobalScope) WorkerNavigator {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
-    return .{ .handle = self.handle.get("navigator", zjb.Handle) };
+    return WorkerNavigator.fromHandle(self.handle.get("navigator", zjb.Handle));
 }
 
 /// Sends a structured message handle back to the worker's parent thread.
@@ -184,6 +183,3 @@ pub fn addEventListenerOwned(
         ctx,
     );
 }
-
-// 8. Extra classes and constants
-pub const @"null": DedicatedWorkerGlobalScope = .{};

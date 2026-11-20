@@ -71,9 +71,16 @@ pub const RTCConfiguration = struct {
 /// Type-safe wrapper for a browser `RTCDataChannel`.
 /// https://developer.mozilla.org/en-US/docs/Web/API/RTCDataChannel
 pub const RTCDataChannel = struct {
-    handle: zjb.Handle = .null,
+    handle: zjb.Handle,
 
     pub const @"null": RTCDataChannel = .{ .handle = .null };
+
+    /// Wraps a non-null JS `RTCDataChannel` handle.
+    pub fn fromHandle(handle: zjb.Handle) RTCDataChannel {
+        std.debug.assert(!handle.isNull());
+        std.debug.assert(@backingInt(handle) != 0);
+        return .{ .handle = handle };
+    }
 
     pub fn release(self: RTCDataChannel) void {
         self.handle.release();
@@ -165,14 +172,22 @@ pub const RTCDataChannel = struct {
 /// Type-safe wrapper for a browser `RTCSessionDescription`.
 /// https://developer.mozilla.org/en-US/docs/Web/API/RTCSessionDescription
 pub const RTCSessionDescription = struct {
-    handle: zjb.Handle = .null,
+    handle: zjb.Handle,
 
+    pub const @"null": RTCSessionDescription = .{ .handle = .null };
     pub const null_description: RTCSessionDescription = .{ .handle = .null };
 
+    /// Wraps a non-null JS `RTCSessionDescription` handle.
+    pub fn fromHandle(handle: zjb.Handle) RTCSessionDescription {
+        std.debug.assert(!handle.isNull());
+        std.debug.assert(@backingInt(handle) != 0);
+        return .{ .handle = handle };
+    }
+
     pub fn init(init_dict: zjb.Handle) RTCSessionDescription {
-        return .{
-            .handle = zjb.global("RTCSessionDescription").new(.{init_dict}),
-        };
+        return fromHandle(
+            zjb.global("RTCSessionDescription").new(.{init_dict}),
+        );
     }
 
     pub fn create(
@@ -210,9 +225,17 @@ pub const RTCSessionDescription = struct {
 /// Type-safe wrapper for an `RTCIceCandidate`.
 /// https://developer.mozilla.org/en-US/docs/Web/API/RTCIceCandidate
 pub const RTCIceCandidate = struct {
-    handle: zjb.Handle = .null,
+    handle: zjb.Handle,
 
+    pub const @"null": RTCIceCandidate = .{ .handle = .null };
     pub const null_candidate: RTCIceCandidate = .{ .handle = .null };
+
+    /// Wraps a non-null JS `RTCIceCandidate` handle.
+    pub fn fromHandle(handle: zjb.Handle) RTCIceCandidate {
+        std.debug.assert(!handle.isNull());
+        std.debug.assert(@backingInt(handle) != 0);
+        return .{ .handle = handle };
+    }
 
     pub fn release(self: RTCIceCandidate) void {
         self.handle.release();
@@ -230,14 +253,21 @@ pub const RTCIceCandidate = struct {
 /// Type-safe wrapper for a browser `RTCPeerConnection`.
 /// https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection
 pub const RTCPeerConnection = struct {
-    handle: zjb.Handle = .null,
+    handle: zjb.Handle,
 
-    pub const @"null": RTCPeerConnection = .{};
+    pub const @"null": RTCPeerConnection = .{ .handle = .null };
+
+    /// Wraps a non-null JS `RTCPeerConnection` handle.
+    pub fn fromHandle(handle: zjb.Handle) RTCPeerConnection {
+        std.debug.assert(!handle.isNull());
+        std.debug.assert(@backingInt(handle) != 0);
+        return .{ .handle = handle };
+    }
 
     pub fn init(config: zjb.Handle) RTCPeerConnection {
-        return .{
-            .handle = zjb.global("RTCPeerConnection").new(.{config}),
-        };
+        return fromHandle(
+            zjb.global("RTCPeerConnection").new(.{config}),
+        );
     }
 
     pub fn release(self: RTCPeerConnection) void {
@@ -267,13 +297,9 @@ pub const RTCPeerConnection = struct {
     ) RTCDataChannel {
         const label_s = zjb.string(label);
         defer label_s.release();
-        return .{
-            .handle = self.handle.call(
-                "createDataChannel",
-                .{label_s},
-                zjb.Handle,
-            ),
-        };
+        return RTCDataChannel.fromHandle(
+            self.handle.call("createDataChannel", .{label_s}, zjb.Handle),
+        );
     }
 
     /// Creates an SDP offer and invokes `on_ok` with the resulting
@@ -423,9 +449,9 @@ pub const RTCPeerConnection = struct {
     }
 
     pub fn localDescription(self: RTCPeerConnection) RTCSessionDescription {
-        return .{
-            .handle = self.handle.get("localDescription", zjb.Handle),
-        };
+        const h = self.handle.get("localDescription", zjb.Handle);
+        if (h.isNull()) return .null_description;
+        return RTCSessionDescription.fromHandle(h);
     }
 
     /// Attaches a context-bound listener receiving `webapi.Event.EventFor(event)`.

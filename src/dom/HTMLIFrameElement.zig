@@ -15,35 +15,34 @@ const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
+pub const @"null": HTMLIFrameElement = .{ .handle = .null };
 
-// 5. init
-/// Wraps a JS HTMLIFrameElement handle without asserting non-null.
-pub fn init(handle: zjb.Handle) HTMLIFrameElement {
-    std.debug.assert(@sizeOf(HTMLIFrameElement) == @sizeOf(zjb.Handle));
-    std.debug.assert(@alignOf(HTMLIFrameElement) == @alignOf(zjb.Handle));
+// 7. Public functions
+/// Wraps a non-null JS HTMLIFrameElement handle.
+pub fn fromHandle(handle: zjb.Handle) HTMLIFrameElement {
+    std.debug.assert(!handle.isNull());
+    std.debug.assert(@backingInt(handle) != 0);
     return .{ .handle = handle };
 }
 
 /// Views a generic Element wrapper as an HTMLIFrameElement.
 pub fn fromElement(el: Element) HTMLIFrameElement {
-    return init(el.handle);
+    return fromHandle(el.handle);
 }
 
-// 6. deinit / release
-/// Releases the underlying JS handle.
-pub fn release(self: HTMLIFrameElement) void {
-    self.handle.release();
-}
-
-// 7. Public functions
 /// Returns true if the underlying JS handle is null or undefined.
 pub fn isNull(self: HTMLIFrameElement) bool {
     return self.handle.isNull();
 }
 
+/// Releases the underlying JS handle.
+pub fn release(self: HTMLIFrameElement) void {
+    self.handle.release();
+}
+
 /// Views this HTMLIFrameElement handle as a base Element.
 pub fn asElement(self: HTMLIFrameElement) Element {
-    return Element.init(self.handle);
+    return Element.fromHandle(self.handle);
 }
 
 /// Returns the inline CSSStyleDeclaration for this iframe.
@@ -104,7 +103,7 @@ pub fn contentDocument(self: HTMLIFrameElement) ?Document {
         doc_h.release();
         return null;
     }
-    return .{ .handle = doc_h };
+    return Document.fromHandle(doc_h);
 }
 
 /// Returns the Window object inside the iframe, or null if unavailable.
@@ -117,7 +116,7 @@ pub fn contentWindow(self: HTMLIFrameElement) ?Window {
         win_h.release();
         return null;
     }
-    return .{ .handle = win_h };
+    return Window.fromHandle(win_h);
 }
 
 /// Attaches a context-bound listener receiving `webapi.Event.EventFor(event)`.

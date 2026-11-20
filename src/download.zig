@@ -38,7 +38,7 @@ pub fn bytes(opt: Options) void {
     const body = webapi.dom.document().body() orelse unreachable;
     defer body.release();
 
-    body.appendChild(.init(a));
+    body.appendChild(.fromHandle(a));
 
     a.call("click", .{}, void);
     a.call("remove", .{}, void);

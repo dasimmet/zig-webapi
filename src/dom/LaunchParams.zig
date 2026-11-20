@@ -11,7 +11,8 @@ const LaunchParams = @This();
 const zjb = webapi.zjb;
 
 // 3. File-level struct members
-handle: zjb.Handle = .null,
+handle: zjb.Handle,
+pub const @"null": LaunchParams = .{ .handle = .null };
 
 // 7. Public functions
 /// Wraps a non-null JS LaunchParams handle.
@@ -63,6 +64,3 @@ pub fn files(self: LaunchParams) zjb.Handle {
     std.debug.assert(@backingInt(self.handle) != 0);
     return self.handle.get("files", zjb.Handle);
 }
-
-// 8. Extra classes and constants
-pub const @"null": LaunchParams = .{};

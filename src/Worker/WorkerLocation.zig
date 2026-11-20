@@ -10,7 +10,8 @@ const WorkerLocation = @This();
 const zjb = webapi.zjb;
 
 // 3. File-level struct members
-handle: zjb.Handle = .null,
+handle: zjb.Handle,
+pub const @"null": WorkerLocation = .{ .handle = .null };
 
 // 7. Public functions
 /// Wraps a non-null JS WorkerLocation handle.
@@ -85,7 +86,6 @@ pub fn getHash(self: WorkerLocation, buf: []u8) []u8 {
 }
 
 // 8. Extra classes and constants
-pub const @"null": WorkerLocation = .{};
 
 // 9. Private declarations
 fn readStringProp(

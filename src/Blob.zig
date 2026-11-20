@@ -10,7 +10,8 @@ const Blob = @This();
 const zjb = webapi.zjb;
 
 // 3. File-level struct members
-handle: zjb.Handle = .null,
+handle: zjb.Handle,
+pub const @"null": Blob = .{ .handle = .null };
 
 // 7. Public functions
 /// Returns true if `Blob` is available in the current global scope.
@@ -30,9 +31,9 @@ pub fn init(parts: zjb.Handle, options: ?Options) Blob {
     if (options) |opt| {
         const opts_h = opt.toHandle();
         defer opts_h.release();
-        return .{ .handle = ctor.new(.{ parts, opts_h }) };
+        return fromHandle(ctor.new(.{ parts, opts_h }));
     }
-    return .{ .handle = ctor.new(.{parts}) };
+    return fromHandle(ctor.new(.{parts}));
 }
 
 /// Constructs a `Blob` copying `data` bytes with optional `Options`.
@@ -122,26 +123,26 @@ pub fn slice(
             @floatFromInt(e)
         else
             @floatFromInt(self.size());
-        return .{ .handle = self.handle.call(
+        return fromHandle(self.handle.call(
             "slice",
             .{ start_f, end_f, ct_s },
             zjb.Handle,
-        ) };
+        ));
     }
     if (end) |e| {
         const start_f: f64 = @floatFromInt(start orelse 0);
         const end_f: f64 = @floatFromInt(e);
-        return .{ .handle = self.handle.call(
+        return fromHandle(self.handle.call(
             "slice",
             .{ start_f, end_f },
             zjb.Handle,
-        ) };
+        ));
     }
     if (start) |s| {
         const start_f: f64 = @floatFromInt(s);
-        return .{ .handle = self.handle.call("slice", .{start_f}, zjb.Handle) };
+        return fromHandle(self.handle.call("slice", .{start_f}, zjb.Handle));
     }
-    return .{ .handle = self.handle.call("slice", .{}, zjb.Handle) };
+    return fromHandle(self.handle.call("slice", .{}, zjb.Handle));
 }
 
 /// Reads the `Blob` contents as a UTF-8 string into a `Promise`.
@@ -183,7 +184,6 @@ pub fn stream(self: Blob) zjb.Handle {
 }
 
 // 8. Extra classes and constants
-pub const @"null": Blob = .{};
 
 /// Line-ending conversion mode for `Blob` construction.
 pub const Endings = enum {

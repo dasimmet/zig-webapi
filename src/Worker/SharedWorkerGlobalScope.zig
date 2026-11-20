@@ -14,15 +14,14 @@ const SharedWorkerGlobalScope = @This();
 const zjb = webapi.zjb;
 
 // 3. File-level struct members
-handle: zjb.Handle = .null,
+handle: zjb.Handle,
+pub const @"null": SharedWorkerGlobalScope = .{ .handle = .null };
 
 // 7. Public functions
 /// Returns a handle to the current `SharedWorkerGlobalScope` (`self`).
 pub fn global() SharedWorkerGlobalScope {
     const h = zjb.ConstHandle.global.asHandle();
-    std.debug.assert(!h.isNull());
-    std.debug.assert(@backingInt(h) != 0);
-    return .{ .handle = h };
+    return fromHandle(h);
 }
 
 /// Wraps a non-null JS SharedWorkerGlobalScope handle.
@@ -58,7 +57,7 @@ pub fn name(self: SharedWorkerGlobalScope, buf: []u8) []u8 {
 pub fn location(self: SharedWorkerGlobalScope) WorkerLocation {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
-    return .{ .handle = self.handle.get("location", zjb.Handle) };
+    return WorkerLocation.fromHandle(self.handle.get("location", zjb.Handle));
 }
 
 /// Returns the `WorkerNavigator` associated with this shared worker.
@@ -66,7 +65,7 @@ pub fn location(self: SharedWorkerGlobalScope) WorkerLocation {
 pub fn navigator(self: SharedWorkerGlobalScope) WorkerNavigator {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
-    return .{ .handle = self.handle.get("navigator", zjb.Handle) };
+    return WorkerNavigator.fromHandle(self.handle.get("navigator", zjb.Handle));
 }
 
 /// Synchronously imports a classic script URL into the shared worker scope.
@@ -143,6 +142,3 @@ pub fn addEventListenerOwned(
         ctx,
     );
 }
-
-// 8. Extra classes and constants
-pub const @"null": SharedWorkerGlobalScope = .{};

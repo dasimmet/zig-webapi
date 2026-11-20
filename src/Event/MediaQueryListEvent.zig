@@ -14,6 +14,7 @@ const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
+pub const @"null": MediaQueryListEvent = .{ .handle = .null };
 
 // 7. Public functions
 /// Wraps a non-null JS MediaQueryListEvent handle.
@@ -27,7 +28,7 @@ pub fn fromHandle(handle: zjb.Handle) MediaQueryListEvent {
 pub fn fromEvent(ev: Event) MediaQueryListEvent {
     std.debug.assert(!ev.isNull());
     std.debug.assert(@backingInt(ev.handle) != 0);
-    return .{ .handle = ev.handle };
+    return fromHandle(ev.handle);
 }
 
 /// Returns a base Event view over this MediaQueryListEvent.
@@ -38,6 +39,11 @@ pub fn asEvent(self: MediaQueryListEvent) Event {
 /// Returns true if the underlying JS handle is null or undefined.
 pub fn isNull(self: MediaQueryListEvent) bool {
     return self.handle.isNull();
+}
+
+/// Releases the underlying JS handle when owned.
+pub fn release(self: MediaQueryListEvent) void {
+    self.handle.release();
 }
 
 /// Cancels default browser action if cancelable.

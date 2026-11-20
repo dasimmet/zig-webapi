@@ -11,7 +11,8 @@ const AudioBuffer = @This();
 const zjb = webapi.zjb;
 
 // 3. File-level struct members
-handle: zjb.Handle = .null,
+handle: zjb.Handle,
+pub const @"null": AudioBuffer = .{ .handle = .null };
 
 // 7. Public functions
 /// Wraps a non-null JS `AudioBuffer` handle.
@@ -76,6 +77,3 @@ pub fn copyToChannel(
         void,
     );
 }
-
-// 8. Extra classes
-pub const @"null": AudioBuffer = .{};

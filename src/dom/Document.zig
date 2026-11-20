@@ -13,8 +13,16 @@ const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
+pub const @"null": Document = .{ .handle = .null };
 
 // 7. Public functions
+/// Wraps a non-null JS `Document` handle.
+pub fn fromHandle(handle: zjb.Handle) Document {
+    std.debug.assert(!handle.isNull());
+    std.debug.assert(@backingInt(handle) != 0);
+    return .{ .handle = handle };
+}
+
 /// Returns true if the underlying JS handle is null or undefined.
 pub fn isNull(self: Document) bool {
     return self.handle.isNull();
@@ -45,7 +53,7 @@ pub fn set(self: Document, comptime field: []const u8, value: anytype) void {
 
 /// Views this Document handle as an Element interface.
 pub fn asElement(self: Document) Element {
-    return .init(self.handle);
+    return Element.fromHandle(self.handle);
 }
 
 /// Returns the `<body>` or `<frameset>` Element of the document.
@@ -58,7 +66,7 @@ pub fn body(self: Document) ?Element {
         b.release();
         return null;
     }
-    return .{ .handle = b };
+    return Element.fromHandle(b);
 }
 
 /// Returns the root Element (`<html>`) of the document.
@@ -66,7 +74,7 @@ pub fn body(self: Document) ?Element {
 pub fn documentElement(self: Document) Element {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
-    return .{ .handle = self.handle.get("documentElement", zjb.Handle) };
+    return Element.fromHandle(self.handle.get("documentElement", zjb.Handle));
 }
 
 /// Returns the currently focused Element in the document, or null.
@@ -76,7 +84,7 @@ pub fn activeElement(self: Document) ?Element {
     std.debug.assert(@backingInt(self.handle) != 0);
     const el = self.handle.get("activeElement", zjb.Handle);
     if (el.isNull()) return null;
-    return .{ .handle = el };
+    return Element.fromHandle(el);
 }
 
 /// Finds an Element in the document matching `id`.
@@ -105,7 +113,9 @@ pub fn createElement(self: Document, comptime tag: []const u8) Element {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(tag.len > 0);
     const tag_str = zjb.constString(tag);
-    return .init(self.handle.call("createElement", .{tag_str}, zjb.Handle));
+    return Element.fromHandle(
+        self.handle.call("createElement", .{tag_str}, zjb.Handle),
+    );
 }
 
 /// Sets `textContent` on the element identified by `id` if it exists.

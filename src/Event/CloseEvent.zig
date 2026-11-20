@@ -13,6 +13,7 @@ const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
+pub const @"null": CloseEvent = .{ .handle = .null };
 
 // 7. Public functions
 /// Wraps a non-null JS CloseEvent handle.
@@ -26,7 +27,7 @@ pub fn fromHandle(handle: zjb.Handle) CloseEvent {
 pub fn fromEvent(ev: Event) CloseEvent {
     std.debug.assert(!ev.isNull());
     std.debug.assert(@backingInt(ev.handle) != 0);
-    return .{ .handle = ev.handle };
+    return fromHandle(ev.handle);
 }
 
 /// Returns a base Event view over this CloseEvent.

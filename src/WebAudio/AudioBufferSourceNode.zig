@@ -13,7 +13,8 @@ const Event = webapi.Event;
 const zjb = webapi.zjb;
 
 // 3. File-level struct members
-handle: zjb.Handle = .null,
+handle: zjb.Handle,
+pub const @"null": AudioBufferSourceNode = .{ .handle = .null };
 
 // 7. Public functions
 /// Wraps a non-null JS `AudioBufferSourceNode` handle.
@@ -76,6 +77,3 @@ pub fn addEventListener(
         ctx,
     );
 }
-
-// 8. Extra classes
-pub const @"null": AudioBufferSourceNode = .{};

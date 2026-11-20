@@ -14,8 +14,16 @@ const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
+pub const @"null": Navigator = .{ .handle = .null };
 
 // 7. Public functions
+/// Wraps a non-null JS `Navigator` handle.
+pub fn fromHandle(handle: zjb.Handle) Navigator {
+    std.debug.assert(!handle.isNull());
+    std.debug.assert(@backingInt(handle) != 0);
+    return .{ .handle = handle };
+}
+
 /// Returns true if the underlying JS handle is null or undefined.
 pub fn isNull(self: Navigator) bool {
     return self.handle.isNull();
@@ -42,7 +50,9 @@ pub fn get(
 pub fn clipboard(self: Navigator) Clipboard {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
-    return .{ .handle = self.handle.get("clipboard", zjb.Handle) };
+    const h = self.handle.get("clipboard", zjb.Handle);
+    if (h.isNull()) return .null;
+    return Clipboard.fromHandle(h);
 }
 
 /// Returns the ServiceWorkerContainer for registering/controlling workers.
@@ -50,7 +60,9 @@ pub fn clipboard(self: Navigator) Clipboard {
 pub fn serviceWorker(self: Navigator) ServiceWorkerContainer {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
-    return .{ .handle = self.handle.get("serviceWorker", zjb.Handle) };
+    const h = self.handle.get("serviceWorker", zjb.Handle);
+    if (h.isNull()) return .null;
+    return ServiceWorkerContainer.fromHandle(h);
 }
 
 /// Checks whether related apps are installed and returns a typed Promise

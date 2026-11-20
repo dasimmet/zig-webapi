@@ -34,13 +34,13 @@ pub const Window = @import("dom/Window.zig");
 /// Returns the global Document instance representing the web page.
 /// https://developer.mozilla.org/en-US/docs/Web/API/Document
 pub fn document() Document {
-    return .{ .handle = zjb.global("document").asHandle() };
+    return Document.fromHandle(zjb.global("document").asHandle());
 }
 
 /// Returns the global Window instance representing the browser window.
 /// https://developer.mozilla.org/en-US/docs/Web/API/Window
 pub fn window() Window {
-    return .{ .handle = zjb.global("window").asHandle() };
+    return Window.fromHandle(zjb.global("window").asHandle());
 }
 
 /// Returns `event.currentTarget` if non-null, otherwise `event.target`.
@@ -53,12 +53,12 @@ pub fn getEventTarget(e: zjb.Handle) zjb.Handle {
     return e.get("target", zjb.Handle);
 }
 
-/// Parses HTML/XML/SVG markup into a detached document element via DOMParser.
+/// Parses HTML/XML/SVG markup into a detached Document via DOMParser.
 /// https://developer.mozilla.org/en-US/docs/Web/API/DOMParser/parseFromString
 pub fn parseDomString(
     xml_src: []const u8,
     comptime mimetype: []const u8,
-) ?zjb.Handle {
+) Document {
     std.debug.assert(xml_src.len > 0);
     std.debug.assert(mimetype.len > 0);
     const parser = zjb.global("DOMParser").new(.{});
@@ -67,11 +67,9 @@ pub fn parseDomString(
     defer src_h.release();
     const mime_h = zjb.constString(mimetype);
     const doc = parser.call("parseFromString", .{ src_h, mime_h }, zjb.Handle);
-    defer doc.release();
-    const root = doc.get("documentElement", zjb.Handle);
-    if (root.isNull()) {
-        root.release();
-        return null;
+    if (doc.isNull()) {
+        doc.release();
+        return .null;
     }
-    return root;
+    return Document.fromHandle(doc);
 }

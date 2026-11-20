@@ -35,6 +35,7 @@ const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
+pub const @"null": Event = .{ .handle = .null };
 
 // 7. Public functions
 /// Wraps a non-null JS Event handle as an Event view.
@@ -47,6 +48,11 @@ pub fn fromHandle(handle: zjb.Handle) Event {
 /// Returns true if the underlying JS handle is null or undefined.
 pub fn isNull(self: Event) bool {
     return self.handle.isNull();
+}
+
+/// Releases the underlying JS handle when owned.
+pub fn release(self: Event) void {
+    self.handle.release();
 }
 
 /// Cancels the event if it is cancelable, stopping default browser action.

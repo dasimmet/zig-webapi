@@ -16,7 +16,8 @@ const Promise = webapi.Promise;
 const zjb = webapi.zjb;
 
 // 3. File-level struct members
-handle: zjb.Handle = .null,
+handle: zjb.Handle,
+pub const @"null": AudioContext = .{ .handle = .null };
 
 // 5. init
 /// Constructs a new `AudioContext`.
@@ -133,6 +134,3 @@ pub fn decodeAudioData(
     const p = self.handle.call("decodeAudioData", .{array_buffer}, zjb.Handle);
     return .fromHandle(p);
 }
-
-// 8. Extra classes
-pub const @"null": AudioContext = .{};

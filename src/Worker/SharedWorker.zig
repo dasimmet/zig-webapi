@@ -13,7 +13,8 @@ const SharedWorker = @This();
 const zjb = webapi.zjb;
 
 // 3. File-level struct members
-handle: zjb.Handle = .null,
+handle: zjb.Handle,
+pub const @"null": SharedWorker = .{ .handle = .null };
 
 // 7. Public functions
 /// Returns true if `SharedWorker` is available in the current global scope.
@@ -34,9 +35,9 @@ pub fn init(script_url: []const u8, options: ?Worker.Options) SharedWorker {
     if (options) |opt| {
         const opts_h = opt.toHandle();
         defer opts_h.release();
-        return .{ .handle = ctor.new(.{ url_s, opts_h }) };
+        return fromHandle(ctor.new(.{ url_s, opts_h }));
     }
-    return .{ .handle = ctor.new(.{url_s}) };
+    return fromHandle(ctor.new(.{url_s}));
 }
 
 /// Wraps a non-null JS SharedWorker handle.
@@ -62,7 +63,7 @@ pub fn release(self: SharedWorker) void {
 pub fn port(self: SharedWorker) MessagePort {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
-    return .{ .handle = self.handle.get("port", zjb.Handle) };
+    return MessagePort.fromHandle(self.handle.get("port", zjb.Handle));
 }
 
 /// Attaches a context-bound listener receiving `Worker.EventFor(ev)`.
@@ -104,6 +105,3 @@ pub fn addEventListenerOwned(
         ctx,
     );
 }
-
-// 8. Extra classes and constants
-pub const @"null": SharedWorker = .{};

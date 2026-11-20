@@ -16,6 +16,7 @@ pub const WritableStreamDefaultWriter =
 
 /// Underlying JavaScript `CompressionStream` handle.
 handle: zjb.Handle,
+pub const @"null": CompressionStream = .{ .handle = .null };
 
 /// Creates a new `CompressionStream` for the given `CompressionFormat`.
 /// https://developer.mozilla.org/en-US/docs/Web/API/CompressionStream/CompressionStream
@@ -25,7 +26,7 @@ pub fn init(format: CompressionFormat) CompressionStream {
     });
     std.debug.assert(!h.isNull());
     std.debug.assert(@backingInt(h) != 0);
-    return .{ .handle = h };
+    return .fromHandle(h);
 }
 
 /// Wraps an existing non-null JavaScript `CompressionStream` handle.

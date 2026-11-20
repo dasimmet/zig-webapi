@@ -14,6 +14,7 @@ const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
+pub const @"null": MessageEvent = .{ .handle = .null };
 
 // 7. Public functions
 /// Wraps a non-null JS MessageEvent handle.
@@ -27,7 +28,7 @@ pub fn fromHandle(handle: zjb.Handle) MessageEvent {
 pub fn fromEvent(ev: Event) MessageEvent {
     std.debug.assert(!ev.isNull());
     std.debug.assert(@backingInt(ev.handle) != 0);
-    return .{ .handle = ev.handle };
+    return fromHandle(ev.handle);
 }
 
 /// Returns a base Event view over this MessageEvent.
@@ -117,5 +118,5 @@ pub fn portAt(self: MessageEvent, idx: usize) ?webapi.Worker.MessagePort {
         port_h.release();
         return null;
     }
-    return .{ .handle = port_h };
+    return webapi.Worker.MessagePort.fromHandle(port_h);
 }

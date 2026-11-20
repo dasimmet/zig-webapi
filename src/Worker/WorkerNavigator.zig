@@ -10,7 +10,8 @@ const WorkerNavigator = @This();
 const zjb = webapi.zjb;
 
 // 3. File-level struct members
-handle: zjb.Handle = .null,
+handle: zjb.Handle,
+pub const @"null": WorkerNavigator = .{ .handle = .null };
 
 // 7. Public functions
 /// Wraps a non-null JS WorkerNavigator handle.
@@ -82,7 +83,6 @@ pub fn locks(self: WorkerNavigator) zjb.Handle {
 }
 
 // 8. Extra classes and constants
-pub const @"null": WorkerNavigator = .{};
 
 // 9. Private declarations
 fn readStringProp(

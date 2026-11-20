@@ -9,6 +9,7 @@ const Promise = @This();
 
 /// Underlying JavaScript `Promise` handle.
 handle: zjb.Handle,
+pub const @"null": Promise = .{ .handle = .null };
 
 /// Options for attaching raw JS callback handles via `Promise.then`.
 pub const ThenOptions = struct {
@@ -33,7 +34,7 @@ pub fn resolve(val: anytype) Promise {
     const p = zjb.global("Promise").call("resolve", .{val}, zjb.Handle);
     std.debug.assert(!p.isNull());
     std.debug.assert(@backingInt(p) != 0);
-    return .{ .handle = p };
+    return fromHandle(p);
 }
 
 /// Returns `true` if the underlying JS handle is null or undefined.
@@ -148,7 +149,7 @@ pub fn Typed(comptime T: type) type {
                         );
                         okh(inner_ctx, code);
                     } else {
-                        okh(inner_ctx, .{ .handle = handle });
+                        okh(inner_ctx, .fromHandle(handle));
                     }
                 }
             };

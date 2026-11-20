@@ -515,7 +515,7 @@ const App = struct {
         if (target_h.isNull()) return;
         defer target_h.release();
 
-        const target_el = dom.Element.init(target_h);
+        const target_el = dom.Element.fromHandle(target_h);
         const val = (target_el.getValueAlloc(self.allocator) catch return) orelse
             return;
         defer self.allocator.free(val);

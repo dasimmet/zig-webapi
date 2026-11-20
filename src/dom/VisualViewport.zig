@@ -12,8 +12,16 @@ const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
+pub const @"null": VisualViewport = .{ .handle = .null };
 
 // 7. Public functions
+/// Wraps a non-null JS `VisualViewport` handle.
+pub fn fromHandle(handle: zjb.Handle) VisualViewport {
+    std.debug.assert(!handle.isNull());
+    std.debug.assert(@backingInt(handle) != 0);
+    return .{ .handle = handle };
+}
+
 /// Returns true if the underlying JS handle is null or undefined.
 pub fn isNull(self: VisualViewport) bool {
     return self.handle.isNull();

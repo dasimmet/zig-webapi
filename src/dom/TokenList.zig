@@ -11,8 +11,16 @@ const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
+pub const @"null": TokenList = .{ .handle = .null };
 
 // 7. Public functions
+/// Wraps a non-null JS `DOMTokenList` handle.
+pub fn fromHandle(handle: zjb.Handle) TokenList {
+    std.debug.assert(!handle.isNull());
+    std.debug.assert(@backingInt(handle) != 0);
+    return .{ .handle = handle };
+}
+
 /// Returns true if the underlying JS handle is null or undefined.
 pub fn isNull(self: TokenList) bool {
     return self.handle.isNull();

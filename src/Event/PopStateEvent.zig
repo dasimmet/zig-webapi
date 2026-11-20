@@ -13,6 +13,7 @@ const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
+pub const @"null": PopStateEvent = .{ .handle = .null };
 
 // 7. Public functions
 /// Wraps a non-null JS PopStateEvent handle.
@@ -26,7 +27,7 @@ pub fn fromHandle(handle: zjb.Handle) PopStateEvent {
 pub fn fromEvent(ev: Event) PopStateEvent {
     std.debug.assert(!ev.isNull());
     std.debug.assert(@backingInt(ev.handle) != 0);
-    return .{ .handle = ev.handle };
+    return fromHandle(ev.handle);
 }
 
 /// Returns a base Event view over this PopStateEvent.
@@ -37,6 +38,11 @@ pub fn asEvent(self: PopStateEvent) Event {
 /// Returns true if the underlying JS handle is null or undefined.
 pub fn isNull(self: PopStateEvent) bool {
     return self.handle.isNull();
+}
+
+/// Releases the underlying JS handle when owned.
+pub fn release(self: PopStateEvent) void {
+    self.handle.release();
 }
 
 /// Returns a copy of the state object associated with the history entry.

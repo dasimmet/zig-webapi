@@ -514,7 +514,7 @@ test "webapi.dom wrappers release handles without leaks" {
         );
 
         const el_h = Mock.allocHandle("mock_el");
-        const el = dom.Element.init(el_h);
+        const el = dom.Element.fromHandle(el_h);
         defer el.release();
         const st = el.style();
         defer st.release();
@@ -757,7 +757,7 @@ test "webapi.dom typed event listeners via boundEventListenerTyped" {
         const doc = dom.document();
         doc.addEventListener("click", ListenerCtx, &ctx, ListenerCtx.onClick);
 
-        const el = dom.Element.init(h);
+        const el = dom.Element.fromHandle(h);
         el.addEventListener("click", ListenerCtx, &ctx, ListenerCtx.onClick);
         el.addEventListenerOwned(
             "click",
@@ -766,7 +766,7 @@ test "webapi.dom typed event listeners via boundEventListenerTyped" {
             ListenerCtx.onClick,
         );
 
-        const mql = dom.MediaQueryList{ .handle = h };
+        const mql = dom.MediaQueryList.fromHandle(h);
         mql.addChangeListener(ListenerCtx, &ctx, ListenerCtx.onChange);
         mql.addEventListener(
             "change",
@@ -775,7 +775,7 @@ test "webapi.dom typed event listeners via boundEventListenerTyped" {
             ListenerCtx.onChange,
         );
 
-        const vv = dom.VisualViewport{ .handle = h };
+        const vv = dom.VisualViewport.fromHandle(h);
         vv.addEventListener(
             "resize",
             ListenerCtx,
@@ -789,7 +789,7 @@ test "webapi.dom typed event listeners via boundEventListenerTyped" {
             ListenerCtx.onGeneric,
         );
 
-        const sw = dom.ServiceWorker{ .handle = h };
+        const sw = dom.ServiceWorker.fromHandle(h);
         sw.addEventListener(
             "statechange",
             ListenerCtx,
@@ -797,7 +797,7 @@ test "webapi.dom typed event listeners via boundEventListenerTyped" {
             ListenerCtx.onGeneric,
         );
 
-        const swc = dom.ServiceWorkerContainer{ .handle = h };
+        const swc = dom.ServiceWorkerContainer.fromHandle(h);
         swc.addEventListener(
             "controllerchange",
             ListenerCtx,
@@ -805,7 +805,7 @@ test "webapi.dom typed event listeners via boundEventListenerTyped" {
             ListenerCtx.onGeneric,
         );
 
-        const swr = dom.ServiceWorkerRegistration{ .handle = h };
+        const swr = dom.ServiceWorkerRegistration.fromHandle(h);
         swr.addEventListener(
             "updatefound",
             ListenerCtx,
@@ -996,7 +996,7 @@ test "webapi.WebRTC, WebSocket, and BroadcastChannel typed event wrappers" {
         const target_h = Mock.allocHandle("mock_rtc_target");
         defer target_h.release();
 
-        const pc = webapi.WebRTC.RTCPeerConnection{ .handle = target_h };
+        const pc = webapi.WebRTC.RTCPeerConnection.fromHandle(target_h);
         pc.addEventListener("icecandidate", ListenerCtx, &ctx, ListenerCtx.onIce);
         pc.addEventListener(
             "icecandidateerror",
@@ -1018,7 +1018,7 @@ test "webapi.WebRTC, WebSocket, and BroadcastChannel typed event wrappers" {
             ListenerCtx.onIce,
         );
 
-        const dc = webapi.WebRTC.RTCDataChannel{ .handle = target_h };
+        const dc = webapi.WebRTC.RTCDataChannel.fromHandle(target_h);
         dc.addEventListener("open", ListenerCtx, &ctx, ListenerCtx.onGeneric);
         dc.addEventListener("message", ListenerCtx, &ctx, ListenerCtx.onMessage);
         dc.addEventListener("close", ListenerCtx, &ctx, ListenerCtx.onClose);
@@ -1029,13 +1029,13 @@ test "webapi.WebRTC, WebSocket, and BroadcastChannel typed event wrappers" {
             ListenerCtx.onMessage,
         );
 
-        const ws = webapi.WebSocket{ .handle = target_h };
+        const ws = webapi.WebSocket.fromHandle(target_h);
         ws.addEventListener("open", ListenerCtx, &ctx, ListenerCtx.onGeneric);
         ws.addEventListener("message", ListenerCtx, &ctx, ListenerCtx.onMessage);
         ws.addEventListener("close", ListenerCtx, &ctx, ListenerCtx.onClose);
         ws.addEventListenerOwned("close", ListenerCtx, &ctx, ListenerCtx.onClose);
 
-        const bc = webapi.BroadcastChannel{ .handle = target_h };
+        const bc = webapi.BroadcastChannel.fromHandle(target_h);
         bc.addEventListener("message", ListenerCtx, &ctx, ListenerCtx.onMessage);
         bc.addEventListenerOwned(
             "message",
@@ -1151,7 +1151,7 @@ test "dom.Navigator.getInstalledRelatedApps and RelatedApplication" {
         }
 
         const list_h = Mock.allocHandle("mock_related_apps");
-        var list: dom.RelatedApplication.List = .{ .handle = list_h };
+        var list = dom.RelatedApplication.List.fromHandle(list_h);
         defer list.release();
         try std.testing.expect(!list.isNull());
         try std.testing.expectEqual(@as(usize, 0), list.len());
@@ -1416,10 +1416,10 @@ test "webapi.Blob and webapi.URL wrappers release handles without leaks" {
         const sp2 = URL.SearchParams.init("a=1&b=2");
         defer sp2.release();
 
-        const resp = webapi.Fetch.Response{
-            .handle = Mock.allocHandle("mock_resp"),
-        };
-        defer resp.handle.release();
+        const resp = webapi.Fetch.Response.fromHandle(
+            Mock.allocHandle("mock_resp"),
+        );
+        defer resp.release();
         const blob_p = resp.blob();
         blob_p.release();
     }
@@ -1593,6 +1593,17 @@ test "webapi.CanvasRenderingContext2D releases handles without leaks" {
         ctx.drawImageScaled(img, 0.0, 0.0, 64.0, 64.0);
         ctx.drawImageRect(img, 0.0, 0.0, 32.0, 32.0, 0.0, 0.0, 64.0, 64.0);
         ctx.clearRect(0.0, 0.0, 64.0, 64.0);
+    }
+    try Mock.assertNoHandleLeaks();
+}
+
+test "webapi.dom.parseDomString returns a Document without handle leaks" {
+    Mock.reset();
+    {
+        const doc: webapi.dom.Document =
+            webapi.dom.parseDomString("<svg/>", "image/svg+xml");
+        defer doc.release();
+        try std.testing.expect(!doc.isNull());
     }
     try Mock.assertNoHandleLeaks();
 }

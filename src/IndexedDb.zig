@@ -104,8 +104,6 @@ pub const ObjectStore = struct {
 
     /// Releases the underlying JavaScript handle.
     pub fn release(self: ObjectStore) void {
-        std.debug.assert(!self.handle.isNull());
-        std.debug.assert(@backingInt(self.handle) != 0);
         self.handle.release();
     }
 
@@ -261,8 +259,6 @@ pub const Transaction = struct {
 
     /// Releases the underlying JavaScript handle.
     pub fn release(self: Transaction) void {
-        std.debug.assert(!self.handle.isNull());
-        std.debug.assert(@backingInt(self.handle) != 0);
         self.handle.release();
     }
 
@@ -318,8 +314,6 @@ pub const Database = struct {
 
     /// Releases the underlying JavaScript handle.
     pub fn release(self: Database) void {
-        std.debug.assert(!self.handle.isNull());
-        std.debug.assert(@backingInt(self.handle) != 0);
         self.handle.release();
     }
 

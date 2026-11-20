@@ -11,9 +11,17 @@ const dom = webapi.dom;
 const zjb = webapi.zjb;
 
 // 3. File-level struct members
-handle: zjb.Handle = .null,
+handle: zjb.Handle,
+pub const @"null": ServiceWorkerContainer = .{ .handle = .null };
 
 // 7. Public functions
+/// Wraps a non-null JS `ServiceWorkerContainer` handle.
+pub fn fromHandle(handle: zjb.Handle) ServiceWorkerContainer {
+    std.debug.assert(!handle.isNull());
+    std.debug.assert(@backingInt(handle) != 0);
+    return .{ .handle = handle };
+}
+
 /// Returns true if the underlying JS handle is null or undefined.
 pub fn isNull(self: ServiceWorkerContainer) bool {
     return self.handle.isNull();
@@ -56,6 +64,3 @@ pub fn addEventListener(
         ctx,
     );
 }
-
-// 8. Extra classes and constants
-pub const @"null": ServiceWorkerContainer = .{};

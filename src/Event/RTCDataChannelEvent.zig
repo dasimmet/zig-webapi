@@ -15,6 +15,7 @@ const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
+pub const @"null": RTCDataChannelEvent = .{ .handle = .null };
 
 // 7. Public functions
 /// Wraps a non-null JS RTCDataChannelEvent handle.
@@ -28,7 +29,7 @@ pub fn fromHandle(handle: zjb.Handle) RTCDataChannelEvent {
 pub fn fromEvent(ev: Event) RTCDataChannelEvent {
     std.debug.assert(!ev.isNull());
     std.debug.assert(@backingInt(ev.handle) != 0);
-    return .{ .handle = ev.handle };
+    return fromHandle(ev.handle);
 }
 
 /// Returns a base Event view over this RTCDataChannelEvent.
@@ -63,5 +64,5 @@ pub fn stopPropagation(self: RTCDataChannelEvent) void {
 pub fn channel(self: RTCDataChannelEvent) WebRTC.RTCDataChannel {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
-    return .{ .handle = self.handle.get("channel", zjb.Handle) };
+    return WebRTC.RTCDataChannel.fromHandle(self.handle.get("channel", zjb.Handle));
 }

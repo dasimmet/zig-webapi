@@ -6,9 +6,9 @@ const zjb = webapi.zjb;
 
 const BroadcastChannel = @This();
 
-handle: zjb.Handle = .null,
+handle: zjb.Handle,
 
-pub const @"null": BroadcastChannel = .{};
+pub const @"null": BroadcastChannel = .{ .handle = .null };
 
 pub fn isSupported() bool {
     const window = zjb.global("window");
@@ -20,15 +20,24 @@ pub fn isSupported() bool {
 pub fn init(name: []const u8) BroadcastChannel {
     const name_s = zjb.string(name);
     defer name_s.release();
-    return .{ .handle = zjb.global("BroadcastChannel").new(.{name_s}) };
+    return fromHandle(zjb.global("BroadcastChannel").new(.{name_s}));
 }
 
-pub fn release(self: BroadcastChannel) void {
-    self.handle.release();
+/// Wraps a non-null JS BroadcastChannel handle.
+pub fn fromHandle(handle: zjb.Handle) BroadcastChannel {
+    std.debug.assert(!handle.isNull());
+    std.debug.assert(@backingInt(handle) != 0);
+    return .{ .handle = handle };
 }
 
+/// Returns true if the underlying JS handle is null or undefined.
 pub fn isNull(self: BroadcastChannel) bool {
     return self.handle.isNull();
+}
+
+/// Releases the underlying JS handle.
+pub fn release(self: BroadcastChannel) void {
+    self.handle.release();
 }
 
 pub fn postMessage(self: BroadcastChannel, message: []const u8) void {

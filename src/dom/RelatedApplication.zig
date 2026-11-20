@@ -12,7 +12,8 @@ const RelatedApplication = @This();
 const zjb = webapi.zjb;
 
 // 3. File-level struct members
-handle: zjb.Handle = .null,
+handle: zjb.Handle,
+pub const @"null": RelatedApplication = .{ .handle = .null };
 
 // 7. Public functions
 /// Wraps a non-null JS RelatedApplication handle.
@@ -57,13 +58,21 @@ pub fn version(self: RelatedApplication, buf: []u8) ?[]const u8 {
 }
 
 // 8. Extra classes and constants
-pub const @"null": RelatedApplication = .{};
 
 /// Typed view/iterator over the `Array<RelatedApplication>` resolved by
 /// `Navigator.getInstalledRelatedApps()`.
 pub const List = struct {
     handle: zjb.Handle,
     pos: usize = 0,
+
+    pub const @"null": List = .{ .handle = .null };
+
+    /// Wraps a non-null JS `Array<RelatedApplication>` handle.
+    pub fn fromHandle(handle: zjb.Handle) List {
+        std.debug.assert(!handle.isNull());
+        std.debug.assert(@backingInt(handle) != 0);
+        return .{ .handle = handle };
+    }
 
     /// Returns true if the underlying JS handle is null or undefined.
     pub fn isNull(self: List) bool {
@@ -90,7 +99,7 @@ pub const List = struct {
             item.release();
             return null;
         }
-        return .{ .handle = item };
+        return RelatedApplication.fromHandle(item);
     }
 
     /// Returns the next owned `RelatedApplication` or null when exhausted.

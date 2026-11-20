@@ -15,6 +15,7 @@ const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
+pub const @"null": ClipboardEvent = .{ .handle = .null };
 
 // 7. Public functions
 /// Wraps a non-null JS ClipboardEvent handle.
@@ -28,7 +29,7 @@ pub fn fromHandle(handle: zjb.Handle) ClipboardEvent {
 pub fn fromEvent(ev: Event) ClipboardEvent {
     std.debug.assert(!ev.isNull());
     std.debug.assert(@backingInt(ev.handle) != 0);
-    return .{ .handle = ev.handle };
+    return fromHandle(ev.handle);
 }
 
 /// Returns a base Event view over this ClipboardEvent.
@@ -39,6 +40,11 @@ pub fn asEvent(self: ClipboardEvent) Event {
 /// Returns true if the underlying JS handle is null or undefined.
 pub fn isNull(self: ClipboardEvent) bool {
     return self.handle.isNull();
+}
+
+/// Releases the underlying JS handle when owned.
+pub fn release(self: ClipboardEvent) void {
+    self.handle.release();
 }
 
 /// Cancels default browser clipboard handling if cancelable.
@@ -58,5 +64,10 @@ pub fn stopPropagation(self: ClipboardEvent) void {
 pub fn clipboardData(self: ClipboardEvent) DataTransfer {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
-    return .{ .handle = self.handle.get("clipboardData", zjb.Handle) };
+    const data_h = self.handle.get("clipboardData", zjb.Handle);
+    if (data_h.isNull()) {
+        data_h.release();
+        return .null;
+    }
+    return DataTransfer.fromHandle(data_h);
 }

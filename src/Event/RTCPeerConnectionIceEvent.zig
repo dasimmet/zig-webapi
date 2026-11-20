@@ -15,6 +15,7 @@ const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
+pub const @"null": RTCPeerConnectionIceEvent = .{ .handle = .null };
 
 // 7. Public functions
 /// Wraps a non-null JS RTCPeerConnectionIceEvent handle.
@@ -28,7 +29,7 @@ pub fn fromHandle(handle: zjb.Handle) RTCPeerConnectionIceEvent {
 pub fn fromEvent(ev: Event) RTCPeerConnectionIceEvent {
     std.debug.assert(!ev.isNull());
     std.debug.assert(@backingInt(ev.handle) != 0);
-    return .{ .handle = ev.handle };
+    return fromHandle(ev.handle);
 }
 
 /// Returns a base Event view over this RTCPeerConnectionIceEvent.
@@ -69,7 +70,7 @@ pub fn candidate(self: RTCPeerConnectionIceEvent) ?WebRTC.RTCIceCandidate {
         cand_h.release();
         return null;
     }
-    return .{ .handle = cand_h };
+    return WebRTC.RTCIceCandidate.fromHandle(cand_h);
 }
 
 /// Copies the STUN or TURN server URL used to gather the candidate into `buf`,

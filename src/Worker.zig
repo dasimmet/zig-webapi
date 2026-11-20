@@ -22,7 +22,8 @@ const Worker = @This();
 const zjb = webapi.zjb;
 
 // 3. File-level struct members
-handle: zjb.Handle = .null,
+handle: zjb.Handle,
+pub const @"null": Worker = .{ .handle = .null };
 
 // 7. Public functions
 /// Returns true if `Worker` is available in the current global scope.
@@ -43,9 +44,9 @@ pub fn init(script_url: []const u8, options: ?Options) Worker {
     if (options) |opt| {
         const opts_h = opt.toHandle();
         defer opts_h.release();
-        return .{ .handle = ctor.new(.{ url_s, opts_h }) };
+        return fromHandle(ctor.new(.{ url_s, opts_h }));
     }
-    return .{ .handle = ctor.new(.{url_s}) };
+    return fromHandle(ctor.new(.{url_s}));
 }
 
 /// Wraps a non-null JS Worker handle.
@@ -159,7 +160,6 @@ pub fn addEventListenerOwned(
 }
 
 // 8. Extra classes and constants
-pub const @"null": Worker = .{};
 
 /// Script evaluation mode for `Worker` and `SharedWorker`.
 pub const Type = enum {

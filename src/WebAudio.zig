@@ -24,8 +24,8 @@ pub const ContextState = enum {
 /// End destination of an audio graph (speakers).
 /// https://developer.mozilla.org/en-US/docs/Web/API/AudioDestinationNode
 pub const AudioDestinationNode = struct {
-    handle: zjb.Handle = .null,
-    pub const @"null": AudioDestinationNode = .{};
+    handle: zjb.Handle,
+    pub const @"null": AudioDestinationNode = .{ .handle = .null };
 
     /// Wraps a non-null JS `AudioDestinationNode` handle.
     pub fn fromHandle(handle: zjb.Handle) AudioDestinationNode {

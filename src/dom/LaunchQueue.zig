@@ -12,7 +12,8 @@ const LaunchQueue = @This();
 const zjb = webapi.zjb;
 
 // 3. File-level struct members
-handle: zjb.Handle = .null,
+handle: zjb.Handle,
+pub const @"null": LaunchQueue = .{ .handle = .null };
 
 // 7. Public functions
 /// Wraps a non-null JS LaunchQueue handle.
@@ -57,4 +58,3 @@ pub fn setConsumer(
 
 // 8. Extra classes and constants
 pub const Params = LaunchParams;
-pub const @"null": LaunchQueue = .{};

@@ -75,7 +75,7 @@ pub fn attachTypedListener(
 ) void {
     const TypeWrapper = struct {
         fn wrap_f(inner_ctx: *Context, handle: zjb.Handle) void {
-            f(inner_ctx, .{ .handle = handle });
+            f(inner_ctx, ReturnType.fromHandle(handle));
         }
     };
     attachBoundListener(

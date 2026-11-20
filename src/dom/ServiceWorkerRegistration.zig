@@ -12,9 +12,17 @@ const dom = webapi.dom;
 const zjb = webapi.zjb;
 
 // 3. File-level struct members
-handle: zjb.Handle = .null,
+handle: zjb.Handle,
+pub const @"null": ServiceWorkerRegistration = .{ .handle = .null };
 
 // 7. Public functions
+/// Wraps a non-null JS `ServiceWorkerRegistration` handle.
+pub fn fromHandle(handle: zjb.Handle) ServiceWorkerRegistration {
+    std.debug.assert(!handle.isNull());
+    std.debug.assert(@backingInt(handle) != 0);
+    return .{ .handle = handle };
+}
+
 /// Returns true if the underlying JS handle is null or undefined.
 pub fn isNull(self: ServiceWorkerRegistration) bool {
     return self.handle.isNull();
@@ -29,7 +37,9 @@ pub fn release(self: ServiceWorkerRegistration) void {
 pub fn installing(self: ServiceWorkerRegistration) ServiceWorker {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
-    return .{ .handle = self.handle.get("installing", zjb.Handle) };
+    const h = self.handle.get("installing", zjb.Handle);
+    if (h.isNull()) return .null;
+    return ServiceWorker.fromHandle(h);
 }
 
 /// Attaches a context-bound listener receiving `webapi.Event.EventFor(ev)`.
@@ -51,6 +61,3 @@ pub fn addEventListener(
         ctx,
     );
 }
-
-// 8. Extra classes and constants
-pub const @"null": ServiceWorkerRegistration = .{};

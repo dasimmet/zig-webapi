@@ -20,8 +20,16 @@ const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
+pub const @"null": Window = .{ .handle = .null };
 
 // 7. Public functions
+/// Wraps a non-null JS `Window` handle.
+pub fn fromHandle(handle: zjb.Handle) Window {
+    std.debug.assert(!handle.isNull());
+    std.debug.assert(@backingInt(handle) != 0);
+    return .{ .handle = handle };
+}
+
 /// Returns true if the underlying JS handle is null or undefined.
 pub fn isNull(self: Window) bool {
     return self.handle.isNull();
@@ -60,7 +68,7 @@ pub fn document(self: Window) ?Document {
         doc_h.release();
         return null;
     }
-    return .{ .handle = doc_h };
+    return Document.fromHandle(doc_h);
 }
 
 /// Returns the Location object for the current URL.
@@ -68,7 +76,7 @@ pub fn document(self: Window) ?Document {
 pub fn location(self: Window) Location {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
-    return .{ .handle = self.handle.get("location", zjb.Handle) };
+    return Location.fromHandle(self.handle.get("location", zjb.Handle));
 }
 
 /// Returns the session History object for this window.
@@ -76,7 +84,7 @@ pub fn location(self: Window) Location {
 pub fn history(self: Window) History {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
-    return .{ .handle = self.handle.get("history", zjb.Handle) };
+    return History.fromHandle(self.handle.get("history", zjb.Handle));
 }
 
 /// Returns the Navigator object for user-agent state and capabilities.
@@ -84,7 +92,7 @@ pub fn history(self: Window) History {
 pub fn navigator(self: Window) Navigator {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
-    return .{ .handle = self.handle.get("navigator", zjb.Handle) };
+    return Navigator.fromHandle(self.handle.get("navigator", zjb.Handle));
 }
 
 /// Returns the Performance timing interface for this window.
@@ -92,7 +100,9 @@ pub fn navigator(self: Window) Navigator {
 pub fn performance(self: Window) Performance {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
-    return .{ .handle = self.handle.get("performance", zjb.Handle) };
+    const h = self.handle.get("performance", zjb.Handle);
+    if (h.isNull()) return .null;
+    return Performance.fromHandle(h);
 }
 
 /// Returns the VisualViewport object for this window.
@@ -100,7 +110,9 @@ pub fn performance(self: Window) Performance {
 pub fn visualViewport(self: Window) VisualViewport {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
-    return .{ .handle = self.handle.get("visualViewport", zjb.Handle) };
+    const h = self.handle.get("visualViewport", zjb.Handle);
+    if (h.isNull()) return .null;
+    return VisualViewport.fromHandle(h);
 }
 
 /// Returns the LaunchQueue interface if supported by the browser, or null.
@@ -113,7 +125,7 @@ pub fn launchQueue(self: Window) ?LaunchQueue {
         lq_h.release();
         return null;
     }
-    return .{ .handle = lq_h };
+    return LaunchQueue.fromHandle(lq_h);
 }
 
 /// Returns the interior viewport width in CSS pixels.
@@ -206,7 +218,8 @@ pub fn matchMedia(self: Window, query: []const u8) MediaQueryList {
     const q_s = zjb.string(query);
     defer q_s.release();
     const mql_h = self.handle.call("matchMedia", .{q_s}, zjb.Handle);
-    return .{ .handle = mql_h };
+    if (mql_h.isNull()) return .null;
+    return MediaQueryList.fromHandle(mql_h);
 }
 
 /// Opens `url` in browsing context `target` (e.g. `"_blank"`).
@@ -219,7 +232,8 @@ pub fn open(self: Window, url: []const u8, target: []const u8) Window {
     const target_s = zjb.string(target);
     defer target_s.release();
     const win_h = self.handle.call("open", .{ url_s, target_s }, zjb.Handle);
-    return .{ .handle = win_h };
+    if (win_h.isNull()) return .null;
+    return fromHandle(win_h);
 }
 
 /// Attaches a context-bound listener receiving `webapi.Event.EventFor(ev)`.

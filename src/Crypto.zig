@@ -11,10 +11,10 @@ const Crypto = @This();
 pub const max_random_values_bytes: usize = 65536;
 
 /// Underlying JavaScript `Crypto` handle.
-handle: zjb.Handle = .null,
+handle: zjb.Handle,
 
 /// Null `Crypto` sentinel.
-pub const @"null": Crypto = .{};
+pub const @"null": Crypto = .{ .handle = .null };
 
 /// Supported cryptographic hash algorithms for `SubtleCrypto.digest` and key parameters.
 pub const HashAlgorithm = enum {
@@ -63,7 +63,7 @@ pub fn isSupported() bool {
 /// Returns a non-owning `Crypto` handle referencing the global `crypto` object.
 /// https://developer.mozilla.org/en-US/docs/Web/API/Window/crypto
 pub fn global() Crypto {
-    return .{ .handle = zjb.global("crypto").asHandle() };
+    return fromHandle(zjb.global("crypto").asHandle());
 }
 
 /// Wraps an existing JavaScript `Crypto` handle.
@@ -89,7 +89,9 @@ pub fn release(self: Crypto) void {
 pub fn subtle(self: Crypto) SubtleCrypto {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
-    return .{ .handle = self.handle.get("subtle", zjb.Handle) };
+    const h = self.handle.get("subtle", zjb.Handle);
+    if (h.isNull()) return .null;
+    return SubtleCrypto.fromHandle(h);
 }
 
 /// Fills `buf` with cryptographically strong random bytes using
@@ -154,9 +156,9 @@ pub fn randomUUIDAlloc(self: Crypto, allocator: std.mem.Allocator) ![]u8 {
 /// Type-safe wrapper for `CryptoKey`.
 /// https://developer.mozilla.org/en-US/docs/Web/API/CryptoKey
 pub const CryptoKey = struct {
-    handle: zjb.Handle = .null,
+    handle: zjb.Handle,
 
-    pub const @"null": CryptoKey = .{};
+    pub const @"null": CryptoKey = .{ .handle = .null };
 
     /// Wraps an existing JavaScript `CryptoKey` handle.
     pub fn fromHandle(handle: zjb.Handle) CryptoKey {
@@ -214,9 +216,9 @@ pub const CryptoKey = struct {
 /// Type-safe wrapper for an asymmetric `CryptoKeyPair` (`{ publicKey, privateKey }`).
 /// https://developer.mozilla.org/en-US/docs/Web/API/CryptoKeyPair
 pub const CryptoKeyPair = struct {
-    handle: zjb.Handle = .null,
+    handle: zjb.Handle,
 
-    pub const @"null": CryptoKeyPair = .{};
+    pub const @"null": CryptoKeyPair = .{ .handle = .null };
 
     /// Wraps an existing JavaScript `CryptoKeyPair` handle.
     pub fn fromHandle(handle: zjb.Handle) CryptoKeyPair {
@@ -238,22 +240,22 @@ pub const CryptoKeyPair = struct {
     /// Returns the public key of the pair. Caller owns the returned `CryptoKey` handle.
     pub fn publicKey(self: CryptoKeyPair) CryptoKey {
         std.debug.assert(!self.handle.isNull());
-        return .{ .handle = self.handle.get("publicKey", zjb.Handle) };
+        return CryptoKey.fromHandle(self.handle.get("publicKey", zjb.Handle));
     }
 
     /// Returns the private key of the pair. Caller owns the returned `CryptoKey` handle.
     pub fn privateKey(self: CryptoKeyPair) CryptoKey {
         std.debug.assert(!self.handle.isNull());
-        return .{ .handle = self.handle.get("privateKey", zjb.Handle) };
+        return CryptoKey.fromHandle(self.handle.get("privateKey", zjb.Handle));
     }
 };
 
 /// Type-safe wrapper for `SubtleCrypto` (`window.crypto.subtle`).
 /// https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto
 pub const SubtleCrypto = struct {
-    handle: zjb.Handle = .null,
+    handle: zjb.Handle,
 
-    pub const @"null": SubtleCrypto = .{};
+    pub const @"null": SubtleCrypto = .{ .handle = .null };
 
     /// Wraps an existing JavaScript `SubtleCrypto` handle.
     pub fn fromHandle(handle: zjb.Handle) SubtleCrypto {

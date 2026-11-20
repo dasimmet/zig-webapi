@@ -12,14 +12,15 @@ const Promise = webapi.Promise;
 const zjb = webapi.zjb;
 
 // 3. File-level struct members
-handle: zjb.Handle = .null,
+handle: zjb.Handle,
+pub const @"null": Image = .{ .handle = .null };
 
 // 5. init
 /// Constructs an empty `Image` (`new Image()`).
 /// https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/Image
 pub fn init() Image {
     const h = zjb.global("Image").new(.{});
-    return .{ .handle = h };
+    return fromHandle(h);
 }
 
 /// Constructs an `Image` with explicit layout `width` and `height` attributes.
@@ -28,7 +29,7 @@ pub fn initWithSize(width_px: i32, height_px: i32) Image {
     std.debug.assert(width_px >= 0);
     std.debug.assert(height_px >= 0);
     const h = zjb.global("Image").new(.{ width_px, height_px });
-    return .{ .handle = h };
+    return fromHandle(h);
 }
 
 // 7. Public functions
@@ -213,7 +214,6 @@ pub fn addEventListener(
 }
 
 // 8. Extra classes
-pub const @"null": Image = .{};
 
 /// CORS mode values accepted by `HTMLImageElement.crossOrigin`.
 pub const CrossOrigin = enum {

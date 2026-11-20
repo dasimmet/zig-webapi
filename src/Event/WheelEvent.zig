@@ -15,6 +15,7 @@ const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
+pub const @"null": WheelEvent = .{ .handle = .null };
 
 // 7. Public functions
 /// Wraps a non-null JS WheelEvent handle.
@@ -28,7 +29,7 @@ pub fn fromHandle(handle: zjb.Handle) WheelEvent {
 pub fn fromEvent(ev: Event) WheelEvent {
     std.debug.assert(!ev.isNull());
     std.debug.assert(@backingInt(ev.handle) != 0);
-    return .{ .handle = ev.handle };
+    return fromHandle(ev.handle);
 }
 
 /// Returns a MouseEvent view over this WheelEvent.
@@ -44,6 +45,11 @@ pub fn asEvent(self: WheelEvent) Event {
 /// Returns true if the underlying JS handle is null or undefined.
 pub fn isNull(self: WheelEvent) bool {
     return self.handle.isNull();
+}
+
+/// Releases the underlying JS handle when owned.
+pub fn release(self: WheelEvent) void {
+    self.handle.release();
 }
 
 /// Cancels default browser wheel scrolling if the event is cancelable.

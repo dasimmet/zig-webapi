@@ -12,7 +12,7 @@ const WebAssembly = @This();
 
 /// Represents an instantiated WebAssembly module with imports.
 pub const Instance = struct {
-    handle: zjb.Handle = .null,
+    handle: zjb.Handle,
 
     pub const @"null": Instance = .{ .handle = .null };
 
@@ -36,7 +36,7 @@ pub const Instance = struct {
         const inst = inst_class.new(.{ module.handle, imp });
         if (inst.isNull()) return error.InstantiateFailed;
 
-        return .{ .handle = inst };
+        return fromHandle(inst);
     }
 
     /// Asynchronously instantiates a compiled WebAssembly module via
@@ -138,6 +138,8 @@ pub const Instance = struct {
 pub const Memory = struct {
     handle: zjb.Handle,
 
+    pub const @"null": Memory = .{ .handle = .null };
+
     /// Wraps an existing JavaScript WebAssembly.Memory handle.
     pub fn fromHandle(handle: zjb.Handle) Memory {
         std.debug.assert(!handle.isNull());
@@ -147,8 +149,6 @@ pub const Memory = struct {
 
     /// Releases the underlying JavaScript handle.
     pub fn release(self: Memory) void {
-        std.debug.assert(!self.handle.isNull());
-        std.debug.assert(@backingInt(self.handle) != 0);
         self.handle.release();
     }
 
@@ -176,6 +176,8 @@ pub const Memory = struct {
 pub const Module = struct {
     handle: zjb.Handle,
 
+    pub const @"null": Module = .{ .handle = .null };
+
     /// Synchronously compiles a WebAssembly module from byte slice.
     /// Note: browsers such as Chromium disallow sync compilation above 4 KiB
     /// on the main thread; prefer `compile` or `instantiateAsync`.
@@ -193,7 +195,7 @@ pub const Module = struct {
         const mod = mod_class.new(.{view});
         if (mod.isNull()) return error.CompileFailed;
 
-        return .{ .handle = mod };
+        return fromHandle(mod);
     }
 
     /// Asynchronously compiles a WebAssembly module via `WebAssembly.compile`,
@@ -222,8 +224,6 @@ pub const Module = struct {
 
     /// Releases the underlying JavaScript handle.
     pub fn release(self: Module) void {
-        std.debug.assert(!self.handle.isNull());
-        std.debug.assert(@backingInt(self.handle) != 0);
         self.handle.release();
     }
 
@@ -236,7 +236,7 @@ pub const Module = struct {
 /// Wraps a JavaScript function so calls to it from WebAssembly can suspend
 /// execution until a returned Promise settles (JSPI).
 pub const Suspending = struct {
-    handle: zjb.Handle = .null,
+    handle: zjb.Handle,
 
     pub const @"null": Suspending = .{ .handle = .null };
 
@@ -254,7 +254,7 @@ pub const Suspending = struct {
 
         const susp = susp_cls.new(.{func});
         if (susp.isNull()) return error.SuspendingInitFailed;
-        return .{ .handle = susp };
+        return fromHandle(susp);
     }
 
     /// Wraps an existing JavaScript WebAssembly.Suspending handle.
@@ -276,7 +276,6 @@ pub const Suspending = struct {
 
     /// Checks whether the underlying JavaScript handle is null.
     pub fn isNull(self: Suspending) bool {
-        std.debug.assert(@intFromPtr(&self) != 0);
         return self.handle.isNull();
     }
 };
@@ -379,13 +378,31 @@ pub fn instantiateAsync(
         zjb.Handle,
     );
     if (p.isNull()) return error.InstantiateFailed;
-    return .{ .promise = webapi.Promise.fromHandle(p) };
+    return .fromHandle(p);
 }
 
 pub const ResultObject = struct {
     handle: zjb.Handle,
+    pub const @"null": ResultObject = .{ .handle = .null };
+
+    /// Wraps a non-null JS WebAssembly instantiate result object handle.
+    pub fn fromHandle(handle: zjb.Handle) ResultObject {
+        std.debug.assert(!handle.isNull());
+        std.debug.assert(@backingInt(handle) != 0);
+        return .{ .handle = handle };
+    }
+
+    /// Returns `true` if the underlying JS handle is null or undefined.
+    pub fn isNull(self: ResultObject) bool {
+        return self.handle.isNull();
+    }
+
+    /// Releases the underlying JavaScript handle.
+    pub fn release(self: ResultObject) void {
+        self.handle.release();
+    }
 
     pub fn instance(self: @This()) Instance {
-        return .{ .handle = self.handle.get("instance", zjb.Handle) };
+        return Instance.fromHandle(self.handle.get("instance", zjb.Handle));
     }
 };

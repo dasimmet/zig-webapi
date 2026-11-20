@@ -13,6 +13,7 @@ const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
+pub const @"null": ErrorEvent = .{ .handle = .null };
 
 // 7. Public functions
 /// Wraps a non-null JS ErrorEvent handle.
@@ -26,7 +27,7 @@ pub fn fromHandle(handle: zjb.Handle) ErrorEvent {
 pub fn fromEvent(ev: Event) ErrorEvent {
     std.debug.assert(!ev.isNull());
     std.debug.assert(@backingInt(ev.handle) != 0);
-    return .{ .handle = ev.handle };
+    return fromHandle(ev.handle);
 }
 
 /// Returns a base Event view over this ErrorEvent.

@@ -18,6 +18,7 @@ const WebGL = @This();
 
 /// Underlying JS `WebGL2RenderingContext` or `WebGLRenderingContext` handle.
 handle: zjb.Handle,
+pub const @"null": WebGL = .{ .handle = .null };
 
 // WebGL Constants
 
@@ -213,9 +214,19 @@ pub fn fromCanvas(canvas: Element) !WebGL {
         return error.WebGLNotSupported;
     }
 
-    return .{
-        .handle = gl,
-    };
+    return fromHandle(gl);
+}
+
+/// Wraps a non-null JS WebGL rendering context handle.
+pub fn fromHandle(handle: zjb.Handle) WebGL {
+    std.debug.assert(!handle.isNull());
+    std.debug.assert(@backingInt(handle) != 0);
+    return .{ .handle = handle };
+}
+
+/// Returns `true` if the underlying JS rendering context handle is null.
+pub fn isNull(self: WebGL) bool {
+    return self.handle.isNull();
 }
 
 /// Releases the underlying JS rendering context handle.
@@ -280,22 +291,32 @@ pub const Buffer = struct {
     handle: zjb.Handle,
 
     /// Null sentinel `Buffer` handle.
+    pub const @"null": Buffer = .{ .handle = .null };
     pub const null_buffer: Buffer = .{ .handle = .null };
 
-    /// Releases the JS handle referencing this buffer.
-    pub fn release(self: Buffer) void {
-        self.handle.release();
+    /// Wraps a non-null JS `WebGLBuffer` handle.
+    pub fn fromHandle(handle: zjb.Handle) Buffer {
+        std.debug.assert(!handle.isNull());
+        std.debug.assert(@backingInt(handle) != 0);
+        return .{ .handle = handle };
     }
 
     /// Returns `true` if this buffer handle is null.
     pub fn isNull(self: Buffer) bool {
         return self.handle.isNull();
     }
+
+    /// Releases the JS handle referencing this buffer.
+    pub fn release(self: Buffer) void {
+        self.handle.release();
+    }
 };
 
 /// Allocates a new `WebGLBuffer` object. Caller must call `release()`.
 pub fn createBuffer(self: WebGL) Buffer {
-    return .{ .handle = self.handle.call("createBuffer", .{}, zjb.Handle) };
+    const h = self.handle.call("createBuffer", .{}, zjb.Handle);
+    if (h.isNull()) return .null_buffer;
+    return Buffer.fromHandle(h);
 }
 
 /// Schedules a `WebGLBuffer` for GPU deletion.
@@ -328,22 +349,32 @@ pub const Texture = struct {
     handle: zjb.Handle,
 
     /// Null sentinel `Texture` handle.
+    pub const @"null": Texture = .{ .handle = .null };
     pub const null_texture: Texture = .{ .handle = .null };
 
-    /// Releases the JS handle referencing this texture.
-    pub fn release(self: Texture) void {
-        self.handle.release();
+    /// Wraps a non-null JS `WebGLTexture` handle.
+    pub fn fromHandle(handle: zjb.Handle) Texture {
+        std.debug.assert(!handle.isNull());
+        std.debug.assert(@backingInt(handle) != 0);
+        return .{ .handle = handle };
     }
 
     /// Returns `true` if this texture handle is null.
     pub fn isNull(self: Texture) bool {
         return self.handle.isNull();
     }
+
+    /// Releases the JS handle referencing this texture.
+    pub fn release(self: Texture) void {
+        self.handle.release();
+    }
 };
 
 /// Allocates a new `WebGLTexture` object. Caller must call `release()`.
 pub fn createTexture(self: WebGL) Texture {
-    return .{ .handle = self.handle.call("createTexture", .{}, zjb.Handle) };
+    const h = self.handle.call("createTexture", .{}, zjb.Handle);
+    if (h.isNull()) return .null_texture;
+    return Texture.fromHandle(h);
 }
 
 /// Schedules a `WebGLTexture` for GPU deletion.
@@ -439,16 +470,24 @@ pub const Shader = struct {
     handle: zjb.Handle,
 
     /// Null sentinel `Shader` handle.
+    pub const @"null": Shader = .{ .handle = .null };
     pub const null_shader: Shader = .{ .handle = .null };
 
-    /// Releases the JS handle referencing this shader.
-    pub fn release(self: Shader) void {
-        self.handle.release();
+    /// Wraps a non-null JS `WebGLShader` handle.
+    pub fn fromHandle(handle: zjb.Handle) Shader {
+        std.debug.assert(!handle.isNull());
+        std.debug.assert(@backingInt(handle) != 0);
+        return .{ .handle = handle };
     }
 
     /// Returns `true` if this shader handle is null.
     pub fn isNull(self: Shader) bool {
         return self.handle.isNull();
+    }
+
+    /// Releases the JS handle referencing this shader.
+    pub fn release(self: Shader) void {
+        self.handle.release();
     }
 };
 
@@ -456,7 +495,8 @@ pub const Shader = struct {
 /// Caller must release the returned wrapper via `release()`.
 pub fn createShader(self: WebGL, shader_type: i32) Shader {
     const h = self.handle.call("createShader", .{shader_type}, zjb.Handle);
-    return .{ .handle = h };
+    if (h.isNull()) return .null_shader;
+    return Shader.fromHandle(h);
 }
 
 /// Schedules a `WebGLShader` for GPU deletion.
@@ -500,22 +540,32 @@ pub const Program = struct {
     handle: zjb.Handle,
 
     /// Null sentinel `Program` handle.
+    pub const @"null": Program = .{ .handle = .null };
     pub const null_program: Program = .{ .handle = .null };
 
-    /// Releases the JS handle referencing this program.
-    pub fn release(self: Program) void {
-        self.handle.release();
+    /// Wraps a non-null JS `WebGLProgram` handle.
+    pub fn fromHandle(handle: zjb.Handle) Program {
+        std.debug.assert(!handle.isNull());
+        std.debug.assert(@backingInt(handle) != 0);
+        return .{ .handle = handle };
     }
 
     /// Returns `true` if this program handle is null.
     pub fn isNull(self: Program) bool {
         return self.handle.isNull();
     }
+
+    /// Releases the JS handle referencing this program.
+    pub fn release(self: Program) void {
+        self.handle.release();
+    }
 };
 
 /// Creates a new `WebGLProgram`. Caller must call `release()`.
 pub fn createProgram(self: WebGL) Program {
-    return .{ .handle = self.handle.call("createProgram", .{}, zjb.Handle) };
+    const h = self.handle.call("createProgram", .{}, zjb.Handle);
+    if (h.isNull()) return .null_program;
+    return Program.fromHandle(h);
 }
 
 /// Schedules a `WebGLProgram` for GPU deletion.
@@ -608,16 +658,24 @@ pub const UniformLocation = struct {
     handle: zjb.Handle,
 
     /// Null sentinel `UniformLocation` handle.
+    pub const @"null": UniformLocation = .{ .handle = .null };
     pub const null_location: UniformLocation = .{ .handle = .null };
 
-    /// Releases the JS handle referencing this uniform location.
-    pub fn release(self: UniformLocation) void {
-        self.handle.release();
+    /// Wraps a non-null JS `WebGLUniformLocation` handle.
+    pub fn fromHandle(handle: zjb.Handle) UniformLocation {
+        std.debug.assert(!handle.isNull());
+        std.debug.assert(@backingInt(handle) != 0);
+        return .{ .handle = handle };
     }
 
     /// Returns `true` if this uniform location handle is null.
     pub fn isNull(self: UniformLocation) bool {
         return self.handle.isNull();
+    }
+
+    /// Releases the JS handle referencing this uniform location.
+    pub fn release(self: UniformLocation) void {
+        self.handle.release();
     }
 };
 
@@ -628,16 +686,24 @@ pub const Framebuffer = struct {
     handle: zjb.Handle,
 
     /// Null sentinel `Framebuffer` handle.
+    pub const @"null": Framebuffer = .{ .handle = .null };
     pub const null_framebuffer: Framebuffer = .{ .handle = .null };
 
-    /// Releases the JS handle referencing this framebuffer.
-    pub fn release(self: Framebuffer) void {
-        self.handle.release();
+    /// Wraps a non-null JS `WebGLFramebuffer` handle.
+    pub fn fromHandle(handle: zjb.Handle) Framebuffer {
+        std.debug.assert(!handle.isNull());
+        std.debug.assert(@backingInt(handle) != 0);
+        return .{ .handle = handle };
     }
 
     /// Returns `true` if this framebuffer handle is null.
     pub fn isNull(self: Framebuffer) bool {
         return self.handle.isNull();
+    }
+
+    /// Releases the JS handle referencing this framebuffer.
+    pub fn release(self: Framebuffer) void {
+        self.handle.release();
     }
 };
 
@@ -646,16 +712,24 @@ pub const Renderbuffer = struct {
     handle: zjb.Handle,
 
     /// Null sentinel `Renderbuffer` handle.
+    pub const @"null": Renderbuffer = .{ .handle = .null };
     pub const null_renderbuffer: Renderbuffer = .{ .handle = .null };
 
-    /// Releases the JS handle referencing this renderbuffer.
-    pub fn release(self: Renderbuffer) void {
-        self.handle.release();
+    /// Wraps a non-null JS `WebGLRenderbuffer` handle.
+    pub fn fromHandle(handle: zjb.Handle) Renderbuffer {
+        std.debug.assert(!handle.isNull());
+        std.debug.assert(@backingInt(handle) != 0);
+        return .{ .handle = handle };
     }
 
     /// Returns `true` if this renderbuffer handle is null.
     pub fn isNull(self: Renderbuffer) bool {
         return self.handle.isNull();
+    }
+
+    /// Releases the JS handle referencing this renderbuffer.
+    pub fn release(self: Renderbuffer) void {
+        self.handle.release();
     }
 };
 
@@ -664,16 +738,24 @@ pub const VertexArray = struct {
     handle: zjb.Handle,
 
     /// Null sentinel `VertexArray` handle.
+    pub const @"null": VertexArray = .{ .handle = .null };
     pub const null_vao: VertexArray = .{ .handle = .null };
 
-    /// Releases the JS handle referencing this vertex array object.
-    pub fn release(self: VertexArray) void {
-        self.handle.release();
+    /// Wraps a non-null JS `WebGLVertexArrayObject` handle.
+    pub fn fromHandle(handle: zjb.Handle) VertexArray {
+        std.debug.assert(!handle.isNull());
+        std.debug.assert(@backingInt(handle) != 0);
+        return .{ .handle = handle };
     }
 
     /// Returns `true` if this vertex array handle is null.
     pub fn isNull(self: VertexArray) bool {
         return self.handle.isNull();
+    }
+
+    /// Releases the JS handle referencing this vertex array object.
+    pub fn release(self: VertexArray) void {
+        self.handle.release();
     }
 };
 
@@ -699,13 +781,13 @@ pub fn getUniformLocation(
 ) UniformLocation {
     const name_s = zjb.string(name);
     defer name_s.release();
-    return .{
-        .handle = self.handle.call(
-            "getUniformLocation",
-            .{ program.handle, name_s },
-            zjb.Handle,
-        ),
-    };
+    const h = self.handle.call(
+        "getUniformLocation",
+        .{ program.handle, name_s },
+        zjb.Handle,
+    );
+    if (h.isNull()) return .null_location;
+    return UniformLocation.fromHandle(h);
 }
 
 /// Enables the generic vertex attribute array at `index`.

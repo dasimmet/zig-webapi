@@ -13,6 +13,7 @@ const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
+pub const @"null": InputEvent = .{ .handle = .null };
 
 // 7. Public functions
 /// Wraps a non-null JS InputEvent handle.
@@ -26,7 +27,7 @@ pub fn fromHandle(handle: zjb.Handle) InputEvent {
 pub fn fromEvent(ev: Event) InputEvent {
     std.debug.assert(!ev.isNull());
     std.debug.assert(@backingInt(ev.handle) != 0);
-    return .{ .handle = ev.handle };
+    return fromHandle(ev.handle);
 }
 
 /// Returns a base Event view over this InputEvent.
@@ -37,6 +38,11 @@ pub fn asEvent(self: InputEvent) Event {
 /// Returns true if the underlying JS handle is null or undefined.
 pub fn isNull(self: InputEvent) bool {
     return self.handle.isNull();
+}
+
+/// Releases the underlying JS handle when owned.
+pub fn release(self: InputEvent) void {
+    self.handle.release();
 }
 
 /// Cancels the default browser action if the event is cancelable.

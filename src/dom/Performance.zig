@@ -11,8 +11,16 @@ const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
+pub const @"null": Performance = .{ .handle = .null };
 
 // 7. Public functions
+/// Wraps a non-null JS `Performance` handle.
+pub fn fromHandle(handle: zjb.Handle) Performance {
+    std.debug.assert(!handle.isNull());
+    std.debug.assert(@backingInt(handle) != 0);
+    return .{ .handle = handle };
+}
+
 /// Returns true if the underlying JS handle is null or undefined.
 pub fn isNull(self: Performance) bool {
     return self.handle.isNull();

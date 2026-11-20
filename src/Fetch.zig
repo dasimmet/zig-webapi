@@ -7,23 +7,28 @@ const zjb = webapi.zjb;
 /// Type-safe wrapper for HTTP request and response headers.
 pub const Headers = struct {
     handle: zjb.Handle,
+    pub const @"null": Headers = .{ .handle = .null };
 
     /// Initializes a new empty Headers instance.
     pub fn init() Headers {
         const h = zjb.global("Headers").new(.{});
-        std.debug.assert(!h.isNull());
-        return .{ .handle = h };
+        return fromHandle(h);
     }
 
-    /// Wraps an existing JavaScript Headers handle.
+    /// Wraps a non-null JS Headers handle.
     pub fn fromHandle(handle: zjb.Handle) Headers {
         std.debug.assert(!handle.isNull());
+        std.debug.assert(@backingInt(handle) != 0);
         return .{ .handle = handle };
     }
 
-    /// Releases the underlying JavaScript handle.
+    /// Returns true if the underlying JS handle is null or undefined.
+    pub fn isNull(self: Headers) bool {
+        return self.handle.isNull();
+    }
+
+    /// Releases the underlying JS handle.
     pub fn release(self: Headers) void {
-        std.debug.assert(!self.handle.isNull());
         self.handle.release();
     }
 
@@ -128,16 +133,22 @@ pub const RequestInit = struct {
 /// Represents the response to a fetch request.
 pub const Response = struct {
     handle: zjb.Handle,
+    pub const @"null": Response = .{ .handle = .null };
 
-    /// Wraps an existing JavaScript Response handle.
+    /// Wraps a non-null JS Response handle.
     pub fn fromHandle(handle: zjb.Handle) Response {
         std.debug.assert(!handle.isNull());
+        std.debug.assert(@backingInt(handle) != 0);
         return .{ .handle = handle };
     }
 
-    /// Releases the underlying JavaScript handle.
+    /// Returns true if the underlying JS handle is null or undefined.
+    pub fn isNull(self: Response) bool {
+        return self.handle.isNull();
+    }
+
+    /// Releases the underlying JS handle.
     pub fn release(self: Response) void {
-        std.debug.assert(!self.handle.isNull());
         self.handle.release();
     }
 
@@ -167,7 +178,7 @@ pub const Response = struct {
         std.debug.assert(!self.handle.isNull());
         const h = self.handle.get("headers", zjb.Handle);
         std.debug.assert(!h.isNull());
-        return .{ .handle = h };
+        return Headers.fromHandle(h);
     }
 
     /// Reads the response body to an ArrayBuffer as a Promise.
@@ -175,7 +186,7 @@ pub const Response = struct {
         std.debug.assert(!self.handle.isNull());
         const p = self.handle.call("arrayBuffer", .{}, zjb.Handle);
         std.debug.assert(!p.isNull());
-        return .{ .handle = p };
+        return .fromHandle(p);
     }
 
     /// Reads the response body to text as a Promise.
@@ -183,7 +194,7 @@ pub const Response = struct {
         std.debug.assert(!self.handle.isNull());
         const p = self.handle.call("text", .{}, zjb.Handle);
         std.debug.assert(!p.isNull());
-        return .{ .handle = p };
+        return .fromHandle(p);
     }
 
     /// Reads and parses the response body as JSON into a Promise.
@@ -191,7 +202,7 @@ pub const Response = struct {
         std.debug.assert(!self.handle.isNull());
         const p = self.handle.call("json", .{}, zjb.Handle);
         std.debug.assert(!p.isNull());
-        return .{ .handle = p };
+        return .fromHandle(p);
     }
 
     /// Reads the response body as a Blob into a typed Promise.

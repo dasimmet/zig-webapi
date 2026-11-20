@@ -11,6 +11,7 @@ const DecompressionStream = @This();
 
 /// Underlying JavaScript `DecompressionStream` handle.
 handle: zjb.Handle,
+pub const @"null": DecompressionStream = .{ .handle = .null };
 
 /// Compression algorithm formats supported by `DecompressionStream`.
 /// https://developer.mozilla.org/en-US/docs/Web/API/DecompressionStream/DecompressionStream
@@ -26,6 +27,7 @@ pub const CompressionFormat = enum {
 /// https://developer.mozilla.org/en-US/docs/Web/API/ReadableStream
 pub const ReadableStream = struct {
     handle: zjb.Handle,
+    pub const @"null": ReadableStream = .{ .handle = .null };
 
     /// Wraps an existing non-null JavaScript `ReadableStream` handle.
     pub fn fromHandle(handle: zjb.Handle) ReadableStream {
@@ -75,6 +77,7 @@ pub const ReadableStream = struct {
 /// https://developer.mozilla.org/en-US/docs/Web/API/WritableStreamDefaultWriter
 pub const WritableStreamDefaultWriter = struct {
     handle: zjb.Handle,
+    pub const @"null": WritableStreamDefaultWriter = .{ .handle = .null };
 
     /// Wraps an existing non-null `WritableStreamDefaultWriter` handle.
     pub fn fromHandle(handle: zjb.Handle) WritableStreamDefaultWriter {
@@ -135,6 +138,7 @@ pub const WritableStreamDefaultWriter = struct {
 /// https://developer.mozilla.org/en-US/docs/Web/API/WritableStream
 pub const WritableStream = struct {
     handle: zjb.Handle,
+    pub const @"null": WritableStream = .{ .handle = .null };
 
     /// Wraps an existing non-null JavaScript `WritableStream` handle.
     pub fn fromHandle(handle: zjb.Handle) WritableStream {
@@ -187,7 +191,7 @@ pub fn init(format: CompressionFormat) DecompressionStream {
     });
     std.debug.assert(!h.isNull());
     std.debug.assert(@backingInt(h) != 0);
-    return .{ .handle = h };
+    return .fromHandle(h);
 }
 
 /// Wraps an existing non-null JavaScript `DecompressionStream` handle.

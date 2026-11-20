@@ -11,7 +11,8 @@ const MessageChannel = @This();
 const zjb = webapi.zjb;
 
 // 3. File-level struct members
-handle: zjb.Handle = .null,
+handle: zjb.Handle,
+pub const @"null": MessageChannel = .{ .handle = .null };
 
 // 7. Public functions
 /// Returns true if `MessageChannel` is available in the current global scope.
@@ -25,9 +26,7 @@ pub fn isSupported() bool {
 /// https://developer.mozilla.org/en-US/docs/Web/API/MessageChannel/MessageChannel
 pub fn init() MessageChannel {
     const h = zjb.global("MessageChannel").new(.{});
-    std.debug.assert(!h.isNull());
-    std.debug.assert(@backingInt(h) != 0);
-    return .{ .handle = h };
+    return fromHandle(h);
 }
 
 /// Wraps a non-null JS MessageChannel handle.
@@ -52,7 +51,7 @@ pub fn release(self: MessageChannel) void {
 pub fn port1(self: MessageChannel) MessagePort {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
-    return .{ .handle = self.handle.get("port1", zjb.Handle) };
+    return MessagePort.fromHandle(self.handle.get("port1", zjb.Handle));
 }
 
 /// Returns an owned handle to the second `MessagePort` of the channel.
@@ -60,8 +59,5 @@ pub fn port1(self: MessageChannel) MessagePort {
 pub fn port2(self: MessageChannel) MessagePort {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
-    return .{ .handle = self.handle.get("port2", zjb.Handle) };
+    return MessagePort.fromHandle(self.handle.get("port2", zjb.Handle));
 }
-
-// 8. Extra classes and constants
-pub const @"null": MessageChannel = .{};

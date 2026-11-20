@@ -11,8 +11,16 @@ const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
+pub const @"null": DataTransfer = .{ .handle = .null };
 
 // 7. Public functions
+/// Wraps a non-null JS `DataTransfer` handle.
+pub fn fromHandle(handle: zjb.Handle) DataTransfer {
+    std.debug.assert(!handle.isNull());
+    std.debug.assert(@backingInt(handle) != 0);
+    return .{ .handle = handle };
+}
+
 /// Returns true if the underlying JS handle is null or undefined.
 pub fn isNull(self: DataTransfer) bool {
     return self.handle.isNull();

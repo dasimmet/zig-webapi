@@ -6,9 +6,9 @@ const webapi = @import("webapi.zig");
 const zjb = webapi.zjb;
 const WebSocket = @This();
 
-handle: zjb.Handle = .null,
+handle: zjb.Handle,
 
-pub const @"null": WebSocket = .{};
+pub const @"null": WebSocket = .{ .handle = .null };
 
 pub const ReadyState = enum(i32) {
     CONNECTING = 0,
@@ -21,15 +21,24 @@ pub const ReadyState = enum(i32) {
 pub fn init(url: []const u8) WebSocket {
     const url_s = zjb.string(url);
     defer url_s.release();
-    return .{ .handle = zjb.global("WebSocket").new(.{url_s}) };
+    return fromHandle(zjb.global("WebSocket").new(.{url_s}));
 }
 
-pub fn release(self: WebSocket) void {
-    self.handle.release();
+/// Wraps a non-null JS WebSocket handle.
+pub fn fromHandle(handle: zjb.Handle) WebSocket {
+    std.debug.assert(!handle.isNull());
+    std.debug.assert(@backingInt(handle) != 0);
+    return .{ .handle = handle };
 }
 
+/// Returns true if the underlying JS handle is null or undefined.
 pub fn isNull(self: WebSocket) bool {
     return self.handle.isNull();
+}
+
+/// Releases the underlying JS handle.
+pub fn release(self: WebSocket) void {
+    self.handle.release();
 }
 
 pub fn send(self: WebSocket, data: []const u8) void {

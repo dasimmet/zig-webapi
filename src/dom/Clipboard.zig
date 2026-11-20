@@ -11,8 +11,16 @@ const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
+pub const @"null": Clipboard = .{ .handle = .null };
 
 // 7. Public functions
+/// Wraps a non-null JS `Clipboard` handle.
+pub fn fromHandle(handle: zjb.Handle) Clipboard {
+    std.debug.assert(!handle.isNull());
+    std.debug.assert(@backingInt(handle) != 0);
+    return .{ .handle = handle };
+}
+
 /// Returns true if the underlying JS handle is null or undefined.
 pub fn isNull(self: Clipboard) bool {
     return self.handle.isNull();
@@ -39,5 +47,5 @@ pub fn writeText(self: Clipboard, text: []const u8) webapi.Promise.Typed(void) {
 pub fn readText(self: Clipboard) webapi.Promise {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
-    return .{ .handle = self.handle.call("readText", .{}, zjb.Handle) };
+    return .fromHandle(self.handle.call("readText", .{}, zjb.Handle));
 }

@@ -16,22 +16,21 @@ const zjb = webapi.zjb;
 
 // 3. File-level struct members
 handle: zjb.Handle,
+pub const @"null": Element = .{ .handle = .null };
 
-// 5. init
-/// Wraps a JS Element handle without asserting non-null.
-pub fn init(handle: zjb.Handle) Element {
-    std.debug.assert(@sizeOf(Element) == @sizeOf(zjb.Handle));
-    std.debug.assert(@alignOf(Element) == @alignOf(zjb.Handle));
+// 7. Public functions
+/// Wraps a non-null JS Element handle.
+pub fn fromHandle(handle: zjb.Handle) Element {
+    std.debug.assert(!handle.isNull());
+    std.debug.assert(@backingInt(handle) != 0);
     return .{ .handle = handle };
 }
 
-// 6. deinit / release
 /// Releases the underlying JS handle.
 pub fn release(self: Element) void {
     self.handle.release();
 }
 
-// 7. Public functions
 /// Returns true if the underlying JS handle is null or undefined.
 pub fn isNull(self: Element) bool {
     return self.handle.isNull();
@@ -52,7 +51,7 @@ pub fn getElementById(self: Element, comptime id: []const u8) ?Element {
     const id_str = zjb.constString(id);
     const el = self.handle.call("getElementById", .{id_str}, zjb.Handle);
     if (el.isNull()) return null;
-    return .{ .handle = el };
+    return fromHandle(el);
 }
 
 /// Returns the first descendant element matching CSS `selector`.
@@ -66,7 +65,7 @@ pub fn querySelector(
     const sel_str = zjb.constString(selector);
     const handle = self.handle.call("querySelector", .{sel_str}, zjb.Handle);
     if (handle.isNull()) return null;
-    return .{ .handle = handle };
+    return fromHandle(handle);
 }
 
 /// Returns a NodeList Iterator over all descendants matching `selector`.
@@ -77,11 +76,7 @@ pub fn querySelectorAll(self: Element, selector: []const u8) Iterator {
     const sel_str = zjb.string(selector);
     defer sel_str.release();
     const iter = self.handle.call("querySelectorAll", .{sel_str}, zjb.Handle);
-    const len = iter.get("length", i32);
-    return .{
-        .handle = iter,
-        .len = if (len > 0) @intCast(len) else 0,
-    };
+    return Iterator.fromHandle(iter);
 }
 
 /// Reads JS property `field` as `RetType`.
@@ -106,7 +101,7 @@ pub fn set(self: Element, comptime field: []const u8, value: anytype) void {
 pub fn style(self: Element) CSSStyleDeclaration {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
-    return .{ .handle = self.handle.get("style", zjb.Handle) };
+    return CSSStyleDeclaration.fromHandle(self.handle.get("style", zjb.Handle));
 }
 
 /// Returns a TokenList (`DOMTokenList`) for manipulating element classes.
@@ -114,7 +109,7 @@ pub fn style(self: Element) CSSStyleDeclaration {
 pub fn classList(self: Element) TokenList {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
-    return .{ .handle = self.handle.get("classList", zjb.Handle) };
+    return TokenList.fromHandle(self.handle.get("classList", zjb.Handle));
 }
 
 /// Attaches a context-bound listener receiving `webapi.Event.EventFor(ev)`.
@@ -205,7 +200,7 @@ pub fn firstChild(self: Element) ?Element {
         fc.release();
         return null;
     }
-    return .{ .handle = fc };
+    return fromHandle(fc);
 }
 
 /// Removes this element from the DOM tree.
@@ -378,8 +373,26 @@ pub fn scrollHeight(self: Element) f64 {
 /// https://developer.mozilla.org/en-US/docs/Web/API/NodeList
 pub const Iterator = struct {
     handle: zjb.Handle,
-    len: usize,
+    len: usize = 0,
     pos: usize = 0,
+
+    pub const @"null": Iterator = .{ .handle = .null };
+
+    /// Wraps a non-null JS `NodeList` handle.
+    pub fn fromHandle(handle: zjb.Handle) Iterator {
+        std.debug.assert(!handle.isNull());
+        std.debug.assert(@backingInt(handle) != 0);
+        const len = handle.get("length", i32);
+        return .{
+            .handle = handle,
+            .len = if (len > 0) @intCast(len) else 0,
+        };
+    }
+
+    /// Returns true if the underlying JS handle is null or undefined.
+    pub fn isNull(self: Iterator) bool {
+        return self.handle.isNull();
+    }
 
     /// Releases the underlying NodeList JS handle.
     pub fn release(self: Iterator) void {
@@ -400,6 +413,6 @@ pub const Iterator = struct {
             zjb.Handle,
         );
         if (el.isNull()) return null;
-        return .{ .handle = el };
+        return Element.fromHandle(el);
     }
 };

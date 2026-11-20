@@ -12,7 +12,8 @@ const BeforeInstallPromptEvent = @This();
 const zjb = webapi.zjb;
 
 // 3. File-level struct members
-handle: zjb.Handle = .null,
+handle: zjb.Handle,
+pub const @"null": BeforeInstallPromptEvent = .{ .handle = .null };
 
 // 7. Public functions
 /// Wraps a non-null JS BeforeInstallPromptEvent handle.
@@ -26,7 +27,7 @@ pub fn fromHandle(handle: zjb.Handle) BeforeInstallPromptEvent {
 pub fn fromEvent(ev: Event) BeforeInstallPromptEvent {
     std.debug.assert(!ev.isNull());
     std.debug.assert(@backingInt(ev.handle) != 0);
-    return .{ .handle = ev.handle };
+    return fromHandle(ev.handle);
 }
 
 /// Returns a base Event view over this BeforeInstallPromptEvent.
@@ -69,6 +70,3 @@ pub fn userChoice(self: BeforeInstallPromptEvent) webapi.Promise {
         self.handle.get("userChoice", zjb.Handle),
     );
 }
-
-// 8. Extra classes and constants
-pub const @"null": BeforeInstallPromptEvent = .{};

@@ -11,7 +11,8 @@ const Element = webapi.dom.Element;
 const zjb = webapi.zjb;
 
 // 3. File-level struct members
-handle: zjb.Handle = .null,
+handle: zjb.Handle,
+pub const @"null": CanvasRenderingContext2D = .{ .handle = .null };
 
 // 5. init
 /// Acquires a `"2d"` rendering context from a `<canvas>` DOM `Element`.
@@ -119,7 +120,6 @@ pub fn clearRect(
 }
 
 // 8. Extra classes
-pub const @"null": CanvasRenderingContext2D = .{};
 
 // 9. Private helper functions
 fn handleOf(source: anytype) zjb.Handle {

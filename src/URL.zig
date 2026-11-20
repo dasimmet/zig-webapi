@@ -10,7 +10,8 @@ const URL = @This();
 const zjb = webapi.zjb;
 
 // 3. File-level struct members
-handle: zjb.Handle = .null,
+handle: zjb.Handle,
+pub const @"null": URL = .{ .handle = .null };
 
 // 7. Public functions
 /// Returns true if `URL` is available in the current global scope.
@@ -32,9 +33,9 @@ pub fn init(url: []const u8, base: ?[]const u8) URL {
         std.debug.assert(b.len > 0);
         const base_s = zjb.string(b);
         defer base_s.release();
-        return .{ .handle = ctor.new(.{ url_s, base_s }) };
+        return fromHandle(ctor.new(.{ url_s, base_s }));
     }
-    return .{ .handle = ctor.new(.{url_s}) };
+    return fromHandle(ctor.new(.{url_s}));
 }
 
 /// Validates whether `url` (resolved against optional `base`) is a valid URL.
@@ -79,7 +80,7 @@ pub fn parse(url: []const u8, base: ?[]const u8) ?URL {
         h.release();
         return null;
     }
-    return .{ .handle = h };
+    return fromHandle(h);
 }
 
 /// Creates a `blob:` object URL string handle referencing `obj` (`Blob`,
@@ -258,7 +259,7 @@ pub fn setHash(self: URL, value: []const u8) void {
 pub fn searchParams(self: URL) SearchParams {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
-    return .{ .handle = self.handle.get("searchParams", zjb.Handle) };
+    return SearchParams.fromHandle(self.handle.get("searchParams", zjb.Handle));
 }
 
 /// Serializes the URL string via `url.toString()` into `buf`.
@@ -284,14 +285,13 @@ pub fn toJSON(self: URL, buf: []u8) []u8 {
 }
 
 // 8. Extra classes and constants
-pub const @"null": URL = .{};
 
 /// Type-safe wrapper for `URLSearchParams`.
 /// https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams
 pub const SearchParams = struct {
-    handle: zjb.Handle = .null,
+    handle: zjb.Handle,
 
-    pub const @"null": SearchParams = .{};
+    pub const @"null": SearchParams = .{ .handle = .null };
 
     /// Constructs a new `URLSearchParams` from an optional query string.
     pub fn init(query: ?[]const u8) SearchParams {
@@ -299,9 +299,9 @@ pub const SearchParams = struct {
         if (query) |q| {
             const q_s = zjb.string(q);
             defer q_s.release();
-            return .{ .handle = ctor.new(.{q_s}) };
+            return SearchParams.fromHandle(ctor.new(.{q_s}));
         }
-        return .{ .handle = ctor.new(.{}) };
+        return SearchParams.fromHandle(ctor.new(.{}));
     }
 
     /// Wraps a non-null JS `URLSearchParams` handle.
