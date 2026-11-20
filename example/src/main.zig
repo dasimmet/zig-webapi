@@ -250,11 +250,32 @@ const App = struct {
         self.gl.useProgram(self.program);
         self.gl.bindBuffer(WebGL.ARRAY_BUFFER, self.vbo);
         self.gl.enableVertexAttribArray(self.pos_loc);
-        self.gl.vertexAttribPointer(self.pos_loc, 3, WebGL.FLOAT, false, @sizeOf(Vertex), @offsetOf(Vertex, "pos"));
+        self.gl.vertexAttribPointer(
+            self.pos_loc,
+            3,
+            WebGL.FLOAT,
+            false,
+            @sizeOf(Vertex),
+            @offsetOf(Vertex, "pos"),
+        );
         self.gl.enableVertexAttribArray(self.uv_loc);
-        self.gl.vertexAttribPointer(self.uv_loc, 2, WebGL.FLOAT, false, @sizeOf(Vertex), @offsetOf(Vertex, "uv"));
+        self.gl.vertexAttribPointer(
+            self.uv_loc,
+            2,
+            WebGL.FLOAT,
+            false,
+            @sizeOf(Vertex),
+            @offsetOf(Vertex, "uv"),
+        );
         self.gl.enableVertexAttribArray(self.normal_loc);
-        self.gl.vertexAttribPointer(self.normal_loc, 3, WebGL.FLOAT, false, @sizeOf(Vertex), @offsetOf(Vertex, "normal"));
+        self.gl.vertexAttribPointer(
+            self.normal_loc,
+            3,
+            WebGL.FLOAT,
+            false,
+            @sizeOf(Vertex),
+            @offsetOf(Vertex, "normal"),
+        );
         self.gl.bindTexture(WebGL.TEXTURE_2D, self.texture);
         self.gl.uniform1i(self.u_dice, 0);
         self.gl.uniform1f(self.u_yaw, self.yaw);
