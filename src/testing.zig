@@ -1456,3 +1456,63 @@ test "webapi.Wasi fdStatSetFlags updates open descriptor flags" {
         wasi.fs.fds.get(open_fd).?.flags,
     );
 }
+
+test "webapi.WebAudio wrappers release handles without leaks" {
+    const warmup = webapi.codec.encode(zjb.constString("").asHandle());
+    warmup.release();
+
+    Mock.reset();
+    {
+        const WebAudio = webapi.WebAudio;
+        const AudioContext = WebAudio.AudioContext;
+
+        try std.testing.expect(AudioContext.null.isNull());
+        try std.testing.expect(WebAudio.AudioDestinationNode.null.isNull());
+        try std.testing.expect(WebAudio.AudioBuffer.null.isNull());
+        try std.testing.expect(WebAudio.AudioBufferSourceNode.null.isNull());
+        try std.testing.expect(AudioContext.isSupported());
+
+        const ctx = AudioContext.init();
+        defer ctx.release();
+        try std.testing.expect(!ctx.isNull());
+        _ = ctx.state();
+        _ = ctx.sampleRate();
+
+        const dest = ctx.destination();
+        defer dest.release();
+        try std.testing.expect(!dest.isNull());
+
+        const Ctx = struct {
+            ended: u32 = 0,
+            fn onEnded(self: *@This(), ev: webapi.Event) void {
+                _ = ev;
+                self.ended += 1;
+            }
+        };
+        var handler_ctx: Ctx = .{};
+
+        const audio_buf = ctx.createBuffer(1, 256, 48000.0);
+        defer audio_buf.release();
+        _ = audio_buf.sampleRate();
+        _ = audio_buf.duration();
+        _ = audio_buf.numberOfChannels();
+        const pcm: [256]f32 = @splat(0.25);
+        audio_buf.copyToChannel(&pcm, 0, 0);
+
+        const buf_src = ctx.createBufferSource();
+        defer buf_src.release();
+        buf_src.setBuffer(audio_buf);
+        buf_src.connect(dest);
+        buf_src.addEventListener("ended", Ctx, &handler_ctx, Ctx.onEnded);
+        buf_src.start();
+
+        const raw_ab = Mock.allocHandle("mock_array_buffer");
+        defer raw_ab.release();
+        const dec_p = ctx.decodeAudioData(raw_ab);
+        dec_p.release();
+
+        const res_p = ctx.@"resume"();
+        res_p.release();
+    }
+    try Mock.assertNoHandleLeaks();
+}

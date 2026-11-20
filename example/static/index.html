@@ -77,6 +77,15 @@
       </div>
       <pre id="worker-output">Click "Send to Worker" to run Zig WASM in a background Web Worker.</pre>
     </section>
+
+    <section class="panel">
+      <h2>Web Audio API (<code>AudioContext</code> + <code>AudioBuffer</code>)</h2>
+      <div class="row">
+        <button id="btn-audio-pcm" type="button">Play Sine Buffer (523 Hz PCM)</button>
+        <button id="btn-audio-mp3" type="button">Play blue-beep.mp3</button>
+      </div>
+      <pre id="audio-output">Click a button to play a generated PCM sine buffer or decode blue-beep.mp3.</pre>
+    </section>
   </main>
 
   <script type="module" src="index.js"></script>
