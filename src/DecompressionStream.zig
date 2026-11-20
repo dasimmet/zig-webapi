@@ -15,9 +15,11 @@ handle: zjb.Handle,
 /// Compression algorithm formats supported by `DecompressionStream`.
 /// https://developer.mozilla.org/en-US/docs/Web/API/DecompressionStream/DecompressionStream
 pub const CompressionFormat = enum {
+    brotli,
     gzip,
     deflate,
     @"deflate-raw",
+    zstd,
 };
 
 /// Wrapper around a JavaScript `ReadableStream` instance.
