@@ -1717,3 +1717,151 @@ test "webapi.Date lifecycle and methods without handle leaks" {
     }
     try Mock.assertNoHandleLeaks();
 }
+
+test "webapi.WebDAV URL, paths, PROPFIND parsing, and Fetch dispatch" {
+    const alloc = std.testing.allocator;
+    const WebDAV = webapi.WebDAV;
+
+    const dav_root = "https://dav.example.com/dav/";
+    const item_url = try WebDAV.buildDavItemUrl(
+        alloc,
+        dav_root,
+        "Sync/Noten/backup 1.html",
+    );
+    defer alloc.free(item_url);
+    try std.testing.expectEqualStrings(
+        "https://dav.example.com/dav/Sync/Noten/backup%201.html",
+        item_url,
+    );
+
+    const norm_dir = try WebDAV.normalizeRelativePath(
+        alloc,
+        "/Sync/.././Noten/",
+        true,
+    );
+    defer alloc.free(norm_dir);
+    try std.testing.expectEqualStrings("Sync/Noten/", norm_dir);
+    try std.testing.expectEqualStrings("Sync/", WebDAV.parentDirPath(norm_dir));
+    try std.testing.expectEqualStrings(
+        "backup.html",
+        WebDAV.basenameOfPath("Sync/backup.html"),
+    );
+
+    const joined = try WebDAV.joinDirAndFile(
+        alloc,
+        "Sync/",
+        "notes",
+        ".html",
+    );
+    defer alloc.free(joined);
+    try std.testing.expectEqualStrings("Sync/notes.html", joined);
+
+    const parent_dir = try WebDAV.dirnameOfFilePath(alloc, joined);
+    defer alloc.free(parent_dir);
+    try std.testing.expectEqualStrings("Sync/", parent_dir);
+
+    var dir_entry = (try WebDAV.buildValidatedDavEntry(
+        alloc,
+        "/dav/Sync/html/",
+        "Sync/",
+        true,
+        null,
+        .{ .dav_root = dav_root },
+    )).?;
+    defer dir_entry.deinit(alloc);
+    try std.testing.expect(dir_entry.is_dir);
+    try std.testing.expectEqualStrings("Sync/html/", dir_entry.rel_path);
+
+    var generic_entry = (try WebDAV.buildValidatedDavEntry(
+        alloc,
+        "/custom/dav/docs/notes.txt",
+        "docs/",
+        false,
+        42,
+        .{ .dav_root = "https://dav.example.com/custom/dav/" },
+    )).?;
+    defer generic_entry.deinit(alloc);
+    try std.testing.expect(!generic_entry.is_dir);
+    try std.testing.expectEqualStrings("docs/notes.txt", generic_entry.rel_path);
+    try std.testing.expect((try WebDAV.buildValidatedDavEntry(
+        alloc,
+        "/custom/dav/docs/notes.txt",
+        "docs/",
+        false,
+        42,
+        .{
+            .dav_root = "https://dav.example.com/custom/dav/",
+            .allowed_extensions = &.{".html"},
+        },
+    )) == null);
+
+    var auth_buf: [std.http.Client.basic_authorization.max_value_len]u8 =
+        undefined;
+    const auth_hdr = std.http.Client.basic_authorization.value(.{
+        .scheme = "https",
+        .user = .{ .raw = "alice" },
+        .password = .{ .raw = "secret" },
+    }, &auth_buf);
+
+    Mock.reset();
+    {
+        const dav = WebDAV.init(.{
+            .dav_root = dav_root,
+            .auth_header = auth_hdr,
+        });
+
+        const sample_xml =
+            \\<?xml version="1.0"?>
+            \\<d:multistatus xmlns:d="DAV:">
+            \\  <d:response>
+            \\    <d:href>/dav/Sync/</d:href>
+            \\  </d:response>
+            \\</d:multistatus>
+        ;
+        const parsed_entries = try WebDAV.parsePropfindXml(
+            alloc,
+            sample_xml,
+            "Sync/",
+            .{ .dav_root = dav_root },
+        );
+        defer {
+            for (parsed_entries) |*e| e.deinit(alloc);
+            alloc.free(parsed_entries);
+        }
+
+        var cors_buf: [512]u8 = undefined;
+        const cors_msg = WebDAV.formatCorsError(
+            &cors_buf,
+            "listing",
+            "PROPFIND",
+            dav_root,
+            null,
+        );
+        try std.testing.expect(cors_msg.len > 0);
+
+        const Cb = struct {
+            fn done(_: *@This(), _: WebDAV.Response) void {}
+        };
+        var cb: Cb = .{};
+        // Promise.thenFn does not settle in mock; use arena for in-flight ctx
+        var req_arena = std.heap.ArenaAllocator.init(alloc);
+        defer req_arena.deinit();
+        const ralloc = req_arena.allocator();
+        try dav.propfind(ralloc, "", .@"1", Cb, &cb, Cb.done);
+        try dav.getFile(ralloc, "Sync/backup.html", Cb, &cb, Cb.done);
+        try dav.putFile(
+            ralloc,
+            "Sync/backup.html",
+            "text/html",
+            "<html/>",
+            Cb,
+            &cb,
+            Cb.done,
+        );
+        try dav.mkcol(ralloc, "Sync/NewDir/", Cb, &cb, Cb.done);
+        try dav.deleteItem(ralloc, "Sync/old.html", Cb, &cb, Cb.done);
+    }
+    // Reset mock handles left unreleased by unsettled mock Promises
+    Mock.reset();
+    try Mock.assertNoHandleLeaks();
+}

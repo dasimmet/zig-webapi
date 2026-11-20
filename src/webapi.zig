@@ -39,6 +39,7 @@ pub const URL = @import("URL.zig");
 pub const Wasi = @import("Wasi.zig");
 pub const WebAssembly = @import("WebAssembly.zig");
 pub const WebAudio = @import("WebAudio.zig");
+pub const WebDAV = @import("WebDAV.zig");
 pub const WebGL = @import("WebGL.zig");
 pub const WebRTC = @import("WebRTC.zig");
 pub const WebSocket = @import("WebSocket.zig");
