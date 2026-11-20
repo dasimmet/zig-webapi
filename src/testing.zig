@@ -1516,3 +1516,83 @@ test "webapi.WebAudio wrappers release handles without leaks" {
     }
     try Mock.assertNoHandleLeaks();
 }
+
+test "webapi.Image wrapper releases handles without leaks" {
+    const warmup = webapi.codec.encode(zjb.constString("").asHandle());
+    warmup.release();
+
+    Mock.reset();
+    {
+        const Image = webapi.Image;
+        try std.testing.expect(Image.null.isNull());
+        try std.testing.expect(Image.isSupported());
+
+        const img = Image.init();
+        defer img.release();
+        try std.testing.expect(!img.isNull());
+
+        img.setSrc("dice.svg");
+        const url_h = Mock.allocHandle("mock_blob_url");
+        defer url_h.release();
+        img.setSrc(url_h);
+
+        var buf: [64]u8 = undefined;
+        _ = img.getSrc(&buf);
+        img.setAlt("dice");
+        _ = img.alt(&buf);
+        img.setWidth(256);
+        img.setHeight(256);
+        _ = img.width();
+        _ = img.height();
+        _ = img.naturalWidth();
+        _ = img.naturalHeight();
+        _ = img.complete();
+        img.setCrossOrigin(.anonymous);
+        img.setCrossOrigin(null);
+        img.setDecoding(.async);
+
+        const Ctx = struct {
+            loaded: u32 = 0,
+            fn onLoad(self: *@This(), ev: webapi.Event) void {
+                _ = ev;
+                self.loaded += 1;
+            }
+        };
+        var ctx: Ctx = .{};
+        img.addEventListener("load", Ctx, &ctx, Ctx.onLoad);
+
+        const dec_p = img.decode();
+        dec_p.release();
+
+        const sized = Image.initWithSize(64, 64);
+        sized.release();
+    }
+    try Mock.assertNoHandleLeaks();
+}
+
+test "webapi.CanvasRenderingContext2D releases handles without leaks" {
+    const warmup = webapi.codec.encode(zjb.constString("").asHandle());
+    warmup.release();
+
+    Mock.reset();
+    {
+        const Canvas2D = webapi.CanvasRenderingContext2D;
+        try std.testing.expect(Canvas2D.null.isNull());
+
+        const canvas = webapi.dom.document().createElement("canvas");
+        defer canvas.release();
+
+        const ctx = try Canvas2D.fromCanvas(canvas);
+        defer ctx.release();
+        try std.testing.expect(!ctx.isNull());
+
+        const img = webapi.Image.init();
+        defer img.release();
+
+        ctx.drawImage(img, 0.0, 0.0);
+        ctx.drawImageScaled(img, 0.0, 0.0, 64.0, 64.0);
+        ctx.drawImageRect(img, 0.0, 0.0, 32.0, 32.0, 0.0, 0.0, 64.0, 64.0);
+        ctx.clearRect(0.0, 0.0, 64.0, 64.0);
+    }
+    try Mock.assertNoHandleLeaks();
+}

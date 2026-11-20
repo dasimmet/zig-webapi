@@ -85,7 +85,7 @@ const App = struct {
     u_dice: WebGL.UniformLocation,
     u_tint: WebGL.UniformLocation,
     frame_cb: zjb.Handle,
-    dice_source: ?struct { image: zjb.Handle, url: zjb.Handle } = null,
+    dice_source: ?struct { image: webapi.Image, url: zjb.Handle } = null,
     yaw: f32 = 0.65,
     pitch: f32 = -0.45,
     scale: f32 = 1.0,
@@ -194,11 +194,11 @@ const App = struct {
 
     fn onDiceBlob(self: *App, blob: webapi.Blob) void {
         const url = webapi.URL.createObjectURL(blob);
-        const image = zjb.global("Image").new(.{});
+        const image = webapi.Image.init();
         self.dice_source = .{ .image = image, .url = url };
-        image.set("src", url);
+        image.setSrc(url);
 
-        const decoded = webapi.Promise.fromHandle(image.call("decode", .{}, zjb.Handle));
+        const decoded = image.decode();
         defer decoded.release();
         decoded.thenFn(App, self, onDiceDecoded, onDiceError);
     }
@@ -211,21 +211,20 @@ const App = struct {
         self.dice_source = null;
     }
 
-    fn onDiceDecoded(self: *App, _: zjb.Handle) void {
+    fn onDiceDecoded(self: *App) void {
         const image = self.dice_source.?.image;
         defer self.releaseDiceSource();
 
         const bitmap = dom.document().createElement("canvas");
         defer bitmap.release();
-        bitmap.set("width", image.get("naturalWidth", i32));
-        bitmap.set("height", image.get("naturalHeight", i32));
-        const context = bitmap.handle.call("getContext", .{zjb.constString("2d")}, zjb.Handle);
-        if (context.isNull()) {
+        bitmap.set("width", image.naturalWidth());
+        bitmap.set("height", image.naturalHeight());
+        const context = webapi.CanvasRenderingContext2D.fromCanvas(bitmap) catch {
             std.log.err("Could not create the dice bitmap's 2D context", .{});
             return;
-        }
+        };
         defer context.release();
-        context.call("drawImage", .{ image, @as(i32, 0), @as(i32, 0) }, void);
+        context.drawImage(image, 0, 0);
 
         self.gl.bindTexture(WebGL.TEXTURE_2D, self.texture);
         // The TexImageSource overload uploads the canvas without copying its pixels to Zig.

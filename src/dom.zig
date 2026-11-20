@@ -6,6 +6,7 @@ const webapi = @import("webapi.zig");
 const zjb = webapi.zjb;
 
 pub const CSSStyleDeclaration = @import("dom/CSSStyleDeclaration.zig");
+pub const CanvasRenderingContext2D = webapi.CanvasRenderingContext2D;
 pub const Clipboard = @import("dom/Clipboard.zig");
 pub const DOMRect = @import("dom/DOMRect.zig");
 pub const DOMRectReadOnly = DOMRect;
@@ -13,6 +14,7 @@ pub const DataTransfer = @import("dom/DataTransfer.zig");
 pub const Document = @import("dom/Document.zig");
 pub const Element = @import("dom/Element.zig");
 pub const HTMLIFrameElement = @import("dom/HTMLIFrameElement.zig");
+pub const HTMLImageElement = webapi.Image;
 pub const History = @import("dom/History.zig");
 pub const LaunchParams = @import("dom/LaunchParams.zig");
 pub const LaunchQueue = @import("dom/LaunchQueue.zig");
