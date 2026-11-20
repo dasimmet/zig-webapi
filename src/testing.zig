@@ -1607,3 +1607,113 @@ test "webapi.dom.parseDomString returns a Document without handle leaks" {
     }
     try Mock.assertNoHandleLeaks();
 }
+
+test "webapi.dom.getComputedStyle releases handles without leaks" {
+    const warmup = webapi.codec.encode(zjb.constString("").asHandle());
+    warmup.release();
+
+    Mock.reset();
+    {
+        const doc = webapi.dom.document();
+        const win = webapi.dom.window();
+        const elem = doc.createElement("div");
+        defer elem.release();
+
+        const doc_style = doc.getComputedStyle(elem, null);
+        defer doc_style.release();
+        try std.testing.expect(!doc_style.isNull());
+
+        const win_style = win.getComputedStyle(elem, "::before");
+        defer win_style.release();
+        try std.testing.expect(!win_style.isNull());
+
+        var buf: [64]u8 = undefined;
+        _ = doc_style.getPropertyValue("color", &buf);
+        const owned = try win_style.getPropertyValueAlloc(
+            std.testing.allocator,
+            "display",
+        );
+        std.testing.allocator.free(owned);
+    }
+    try Mock.assertNoHandleLeaks();
+}
+
+test "webapi.Date lifecycle and methods without handle leaks" {
+    const warmup = webapi.codec.encode(zjb.constString("").asHandle());
+    warmup.release();
+
+    Mock.reset();
+    {
+        const Date = webapi.Date;
+        try std.testing.expect(Date.null.isNull());
+        try std.testing.expect(Date.isSupported());
+
+        const d1 = Date.init();
+        defer d1.release();
+        try std.testing.expect(!d1.isNull());
+
+        const d2 = Date.initFromTimestamp(1_700_000_000_000.0);
+        defer d2.release();
+        const d3 = Date.initFromString("2026-11-20T12:00:00Z");
+        defer d3.release();
+        const d4 = Date.initFromParts(.{ .year = 2026, .month_index = 10 });
+        defer d4.release();
+
+        _ = Date.now();
+        _ = Date.parse("2026-11-20T12:00:00Z");
+        _ = Date.utc(.{ .year = 2026, .month_index = 10, .day = 20 });
+
+        d1.setTime(1_700_000_000_000.0);
+        _ = d1.getTime();
+        _ = d1.getTimezoneOffset();
+
+        d1.setFullYear(2026);
+        _ = d1.getFullYear();
+        d1.setMonth(10);
+        _ = d1.getMonth();
+        d1.setDate(20);
+        _ = d1.getDate();
+        _ = d1.getDay();
+        d1.setHours(15);
+        _ = d1.getHours();
+        d1.setMinutes(30);
+        _ = d1.getMinutes();
+        d1.setSeconds(45);
+        _ = d1.getSeconds();
+        d1.setMilliseconds(500);
+        _ = d1.getMilliseconds();
+
+        d1.setUTCFullYear(2026);
+        _ = d1.getUTCFullYear();
+        d1.setUTCMonth(10);
+        _ = d1.getUTCMonth();
+        d1.setUTCDate(20);
+        _ = d1.getUTCDate();
+        _ = d1.getUTCDay();
+        d1.setUTCHours(14);
+        _ = d1.getUTCHours();
+        d1.setUTCMinutes(30);
+        _ = d1.getUTCMinutes();
+        d1.setUTCSeconds(45);
+        _ = d1.getUTCSeconds();
+        d1.setUTCMilliseconds(500);
+        _ = d1.getUTCMilliseconds();
+
+        var buf: [128]u8 = undefined;
+        _ = d1.toISOString(&buf);
+        _ = d1.toUTCString(&buf);
+        _ = d1.toDateString(&buf);
+        _ = d1.toTimeString(&buf);
+        _ = d1.toString(&buf);
+        _ = d1.toLocaleString(null, &buf);
+        _ = d1.toLocaleDateString("en-US", &buf);
+        _ = d1.toLocaleTimeString(null, &buf);
+        _ = d1.toJSON(&buf);
+
+        const iso = try d1.toISOStringAlloc(std.testing.allocator);
+        std.testing.allocator.free(iso);
+        const full = try d1.toStringAlloc(std.testing.allocator);
+        std.testing.allocator.free(full);
+    }
+    try Mock.assertNoHandleLeaks();
+}

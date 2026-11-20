@@ -4,7 +4,9 @@
 // 1. Imports
 const std = @import("std");
 const webapi = @import("../webapi.zig");
+const CSSStyleDeclaration = @import("CSSStyleDeclaration.zig");
 const Element = @import("Element.zig");
+const Window = @import("Window.zig");
 
 // 2. Shortcuts on imports
 const Document = @This();
@@ -100,6 +102,36 @@ pub fn querySelector(
     comptime selector: []const u8,
 ) ?Element {
     return self.asElement().querySelector(selector);
+}
+
+/// Returns the Window object associated with the document, or null.
+/// https://developer.mozilla.org/en-US/docs/Web/API/Document/defaultView
+pub fn defaultView(self: Document) ?Window {
+    std.debug.assert(!self.handle.isNull());
+    std.debug.assert(@backingInt(self.handle) != 0);
+    const view_h = self.handle.get("defaultView", zjb.Handle);
+    if (view_h.isNull()) {
+        view_h.release();
+        return null;
+    }
+    return Window.fromHandle(view_h);
+}
+
+/// Returns resolved CSS styles for `element` via `defaultView` (or global
+/// window when `defaultView` is null).
+/// https://developer.mozilla.org/en-US/docs/Web/API/Window/getComputedStyle
+pub fn getComputedStyle(
+    self: Document,
+    element: Element,
+    pseudo_elt: ?[]const u8,
+) CSSStyleDeclaration {
+    std.debug.assert(!self.handle.isNull());
+    std.debug.assert(!element.handle.isNull());
+    if (self.defaultView()) |view| {
+        defer view.release();
+        return view.getComputedStyle(element, pseudo_elt);
+    }
+    return dom.window().getComputedStyle(element, pseudo_elt);
 }
 
 /// Returns an iterator over all Elements matching CSS `selector`.

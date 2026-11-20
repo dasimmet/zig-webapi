@@ -4,7 +4,9 @@
 // 1. Imports
 const std = @import("std");
 const webapi = @import("../webapi.zig");
+const CSSStyleDeclaration = @import("CSSStyleDeclaration.zig");
 const Document = @import("Document.zig");
+const Element = @import("Element.zig");
 const History = @import("History.zig");
 const LaunchQueue = @import("LaunchQueue.zig");
 const Location = @import("Location.zig");
@@ -234,6 +236,36 @@ pub fn open(self: Window, url: []const u8, target: []const u8) Window {
     const win_h = self.handle.call("open", .{ url_s, target_s }, zjb.Handle);
     if (win_h.isNull()) return .null;
     return fromHandle(win_h);
+}
+
+/// Returns resolved CSS styles for `element` (and optional `pseudo_elt`).
+/// https://developer.mozilla.org/en-US/docs/Web/API/Window/getComputedStyle
+pub fn getComputedStyle(
+    self: Window,
+    element: Element,
+    pseudo_elt: ?[]const u8,
+) CSSStyleDeclaration {
+    std.debug.assert(!self.handle.isNull());
+    std.debug.assert(!element.handle.isNull());
+    const h = if (pseudo_elt) |pseudo| blk: {
+        std.debug.assert(pseudo.len > 0);
+        const pseudo_s = zjb.string(pseudo);
+        defer pseudo_s.release();
+        break :blk self.handle.call(
+            "getComputedStyle",
+            .{ element.handle, pseudo_s },
+            zjb.Handle,
+        );
+    } else self.handle.call(
+        "getComputedStyle",
+        .{element.handle},
+        zjb.Handle,
+    );
+    if (h.isNull()) {
+        h.release();
+        return .null;
+    }
+    return CSSStyleDeclaration.fromHandle(h);
 }
 
 /// Attaches a context-bound listener receiving `webapi.Event.EventFor(ev)`.

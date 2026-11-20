@@ -43,3 +43,37 @@ pub fn setProperty(
     defer val_s.release();
     self.handle.set(prop, val_s);
 }
+
+/// Copies the value of CSS property `prop` (e.g. `"font-size"`) into `buf`.
+/// https://developer.mozilla.org/en-US/docs/Web/API/CSSStyleDeclaration/getPropertyValue
+pub fn getPropertyValue(
+    self: CSSStyleDeclaration,
+    prop: []const u8,
+    buf: []u8,
+) []u8 {
+    std.debug.assert(!self.handle.isNull());
+    std.debug.assert(prop.len > 0);
+    std.debug.assert(buf.len > 0);
+    const prop_s = zjb.string(prop);
+    defer prop_s.release();
+    const val_h = self.handle.call("getPropertyValue", .{prop_s}, zjb.Handle);
+    defer val_h.release();
+    if (val_h.isNull()) return "";
+    return webapi.stringFromHandle(val_h, buf);
+}
+
+/// Allocates and returns the value of CSS property `prop`.
+/// https://developer.mozilla.org/en-US/docs/Web/API/CSSStyleDeclaration/getPropertyValue
+pub fn getPropertyValueAlloc(
+    self: CSSStyleDeclaration,
+    allocator: std.mem.Allocator,
+    prop: []const u8,
+) ![]u8 {
+    std.debug.assert(!self.handle.isNull());
+    std.debug.assert(prop.len > 0);
+    const prop_s = zjb.string(prop);
+    defer prop_s.release();
+    const val_h = self.handle.call("getPropertyValue", .{prop_s}, zjb.Handle);
+    defer val_h.release();
+    return webapi.stringFromHandleAlloc(allocator, val_h);
+}

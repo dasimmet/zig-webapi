@@ -165,7 +165,7 @@ pub fn nextTimestampNs(self: *FileSystem) u64 {
     std.debug.assert(@intFromPtr(self) != 0);
     std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
 
-    const now_ms = zjb.global("Date").call("now", .{}, f64);
+    const now_ms = webapi.Date.now();
     var ns: u64 = if (now_ms > 0.0)
         @intFromFloat(now_ms * 1_000_000.0)
     else
