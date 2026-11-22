@@ -13,7 +13,7 @@ preopens: []const []const u8,
 files: std.StringHashMap(FileEntry),
 directories: std.StringHashMap(void),
 fds: std.AutoHashMap(i32, OpenFile),
-indexed_fs_mounts: std.ArrayListUnmanaged(ActiveIndexedFsMountPoint) =
+indexed_fs_mounts: std.ArrayList(ActiveIndexedFsMountPoint) =
     .empty,
 on_indexed_fs_mount_ready: ?*const fn (
     ctx: *anyopaque,
@@ -834,7 +834,7 @@ pub fn removeDirTree(self: *FileSystem, dir_path: []const u8) bool {
     defer self.allocator.free(norm);
 
     var removed = false;
-    var files_to_remove: std.ArrayListUnmanaged([]const u8) = .empty;
+    var files_to_remove: std.ArrayList([]const u8) = .empty;
     defer files_to_remove.deinit(self.allocator);
 
     var fit = self.files.iterator();
@@ -853,7 +853,7 @@ pub fn removeDirTree(self: *FileSystem, dir_path: []const u8) bool {
         }
     }
 
-    var dirs_to_remove: std.ArrayListUnmanaged([]const u8) = .empty;
+    var dirs_to_remove: std.ArrayList([]const u8) = .empty;
     defer dirs_to_remove.deinit(self.allocator);
 
     var dit = self.directories.iterator();
@@ -995,7 +995,7 @@ pub const ActiveIndexedFsMountPoint = struct {
     db_name: []const u8,
     store_name: []const u8,
     preload_path: ?[]const u8 = null,
-    preloaded_prefixes: std.ArrayListUnmanaged([]const u8) = .empty,
+    preloaded_prefixes: std.ArrayList([]const u8) = .empty,
     db: webapi.IndexedDb.Database = .null,
     checked_paths: std.StringHashMap(void),
     mock_entries: std.StringHashMap(FileEntry),
@@ -1509,7 +1509,7 @@ fn closeMatchingFds(
     std.debug.assert(norm.len > 0);
     std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
 
-    var fds_to_close: std.ArrayListUnmanaged(i32) = .empty;
+    var fds_to_close: std.ArrayList(i32) = .empty;
     defer fds_to_close.deinit(self.allocator);
     var fdit = self.fds.iterator();
     while (fdit.next()) |entry| {
