@@ -109,7 +109,7 @@ pub fn stringFromHandle(h: zjb.Handle, buf: []u8) []u8 {
     const encoded = codec.encode(h);
     defer encoded.release();
 
-    const len = encoded.get("length", JsPtrInt);
+    const len = encoded.get("length", i32);
     if (len <= 0) return "";
     const ulen: usize = @intCast(len);
     if (buf.len < ulen) {
@@ -135,7 +135,7 @@ pub fn stringFromHandleAlloc(
     if (h.isNull()) return error.NullHandle;
     const encoded = codec.encode(h);
     defer encoded.release();
-    const len = encoded.get("length", JsPtrInt);
+    const len = encoded.get("length", i32);
     if (len <= 0) return "";
     const ulen: usize = @intCast(len);
     const buf = try allocator.alloc(u8, ulen);
@@ -182,7 +182,7 @@ pub fn bytesFromHandleAlloc(
 ) ![]u8 {
     if (data_h.isNull()) return error.NullHandle;
 
-    const byte_len = data_h.get("byteLength", JsPtrInt);
+    const byte_len = data_h.get("byteLength", i32);
     if (byte_len > 0) {
         const ulen: usize = @intCast(byte_len);
         const buf = try allocator.alloc(u8, ulen);
