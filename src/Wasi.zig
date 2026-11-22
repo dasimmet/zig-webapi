@@ -11,6 +11,7 @@ pub const FileSystem = @import("Wasi/FileSystem.zig");
 const Wasi = @This();
 const zjb = webapi.zjb;
 const WebAssembly = webapi.WebAssembly;
+const JsPtrInt = @Int(.signed, @bitSizeOf(usize));
 
 allocator: std.mem.Allocator,
 args: []const []const u8,
@@ -403,7 +404,7 @@ pub fn runWasmAsync(
         "wasi_run_wasm_executor",
         &wasi_run_wasm_executor,
     );
-    const ctx_ptr: i32 = @bitCast(@intFromPtr(ctx));
+    const ctx_ptr: JsPtrInt = @bitCast(@intFromPtr(ctx));
     const bound_exec = executor.call(
         "bind",
         .{ zjb.Handle.null, ctx_ptr },
@@ -604,7 +605,7 @@ fn bindMethod(
     comptime name: []const u8,
     comptime f: anytype,
 ) zjb.Handle {
-    const ctx_ptr: i32 = @bitCast(@intFromPtr(self));
+    const ctx_ptr: JsPtrInt = @bitCast(@intFromPtr(self));
     return zjb.fnHandle(name, f).call(
         "bind",
         .{ zjb.Handle.null, ctx_ptr },
@@ -711,10 +712,9 @@ fn startRawPromise(
     self.start_propagate_errors = propagate_errors;
     exports_owned = false;
 
-    const PtrInt = if (@sizeOf(usize) == 8) i64 else i32;
     const prom_cls = zjb.global("Promise");
     const executor = zjb.fnHandle("wasi_exec_start", &wasi_exec_start);
-    const wasi_ptr: PtrInt = @bitCast(@intFromPtr(self));
+    const wasi_ptr: JsPtrInt = @bitCast(@intFromPtr(self));
     const bound_exec = executor.call(
         "bind",
         .{ zjb.Handle.null, wasi_ptr },
@@ -819,7 +819,7 @@ fn readTargetBytes(self: *Wasi, src_ptr: i32, dest: []u8) void {
 // =========================================================================
 
 fn wasi_args_sizes_get(
-    ctx_ptr: i32,
+    ctx_ptr: JsPtrInt,
     argc_ptr: i32,
     argv_buf_size_ptr: i32,
 ) callconv(.c) i32 {
@@ -835,7 +835,7 @@ fn wasi_args_sizes_get(
 }
 
 fn wasi_args_get(
-    ctx_ptr: i32,
+    ctx_ptr: JsPtrInt,
     argv_ptr: i32,
     argv_buf_ptr: i32,
 ) callconv(.c) i32 {
@@ -855,7 +855,7 @@ fn wasi_args_get(
 }
 
 fn wasi_environ_sizes_get(
-    ctx_ptr: i32,
+    ctx_ptr: JsPtrInt,
     environc_ptr: i32,
     environ_buf_size_ptr: i32,
 ) callconv(.c) i32 {
@@ -871,7 +871,7 @@ fn wasi_environ_sizes_get(
 }
 
 fn wasi_environ_get(
-    ctx_ptr: i32,
+    ctx_ptr: JsPtrInt,
     environ_ptr: i32,
     environ_buf_ptr: i32,
 ) callconv(.c) i32 {
@@ -895,7 +895,7 @@ fn wasi_environ_get(
 }
 
 fn wasi_fd_prestat_get(
-    ctx_ptr: i32,
+    ctx_ptr: JsPtrInt,
     fd: i32,
     prestat_ptr: i32,
 ) callconv(.c) i32 {
@@ -914,7 +914,7 @@ fn wasi_fd_prestat_get(
 }
 
 fn wasi_fd_prestat_dir_name(
-    ctx_ptr: i32,
+    ctx_ptr: JsPtrInt,
     fd: i32,
     path_ptr: i32,
     path_len: i32,
@@ -932,7 +932,7 @@ fn wasi_fd_prestat_dir_name(
 }
 
 fn wasi_fd_fdstat_get(
-    ctx_ptr: i32,
+    ctx_ptr: JsPtrInt,
     fd: i32,
     fdstat_ptr: i32,
 ) callconv(.c) i32 {
@@ -981,7 +981,7 @@ pub fn fdStatSetFlags(self: *Wasi, fd: i32, flags: i32) i32 {
 }
 
 fn wasi_fd_fdstat_set_flags(
-    ctx_ptr: i32,
+    ctx_ptr: JsPtrInt,
     fd: i32,
     flags: i32,
 ) callconv(.c) i32 {
@@ -992,7 +992,7 @@ fn wasi_fd_fdstat_set_flags(
 }
 
 fn wasi_fd_filestat_get(
-    ctx_ptr: i32,
+    ctx_ptr: JsPtrInt,
     fd: i32,
     filestat_ptr: i32,
 ) callconv(.c) i32 {
@@ -1039,7 +1039,7 @@ fn wasi_fd_filestat_get(
 }
 
 fn wasi_fd_read(
-    ctx_ptr: i32,
+    ctx_ptr: JsPtrInt,
     fd: i32,
     iovs_ptr: i32,
     iovs_len: i32,
@@ -1087,7 +1087,7 @@ fn wasi_fd_read(
 }
 
 fn wasi_fd_pread(
-    ctx_ptr: i32,
+    ctx_ptr: JsPtrInt,
     fd: i32,
     iovs_ptr: i32,
     iovs_len: i32,
@@ -1163,7 +1163,7 @@ fn writeTargetFileRange(
 }
 
 fn wasi_fd_write(
-    ctx_ptr: i32,
+    ctx_ptr: JsPtrInt,
     fd: i32,
     iovs_ptr: i32,
     iovs_len: i32,
@@ -1241,7 +1241,7 @@ fn wasi_fd_write(
 }
 
 fn wasi_fd_pwrite(
-    ctx_ptr: i32,
+    ctx_ptr: JsPtrInt,
     fd: i32,
     iovs_ptr: i32,
     iovs_len: i32,
@@ -1281,7 +1281,7 @@ fn wasi_fd_pwrite(
 }
 
 fn wasi_fd_seek(
-    ctx_ptr: i32,
+    ctx_ptr: JsPtrInt,
     fd: i32,
     offset: i64,
     whence: i32,
@@ -1311,7 +1311,7 @@ fn wasi_fd_seek(
     return 0;
 }
 
-fn wasi_fd_close(ctx_ptr: i32, fd: i32) callconv(.c) i32 {
+fn wasi_fd_close(ctx_ptr: JsPtrInt, fd: i32) callconv(.c) i32 {
     if (fd >= FileSystem.STDIN_FILENO and fd <= FileSystem.STDERR_FILENO) {
         return 0;
     }
@@ -1333,7 +1333,7 @@ fn wasi_fd_sync(_: i32, _: i32) callconv(.c) i32 {
 }
 
 fn wasi_fd_filestat_set_size(
-    ctx_ptr: i32,
+    ctx_ptr: JsPtrInt,
     fd: i32,
     size: i64,
 ) callconv(.c) i32 {
@@ -1364,7 +1364,7 @@ fn wasi_fd_filestat_set_size(
 }
 
 fn wasi_fd_filestat_set_times(
-    ctx_ptr: i32,
+    ctx_ptr: JsPtrInt,
     fd: i32,
     _: i64,
     mtim: i64,
@@ -1387,7 +1387,7 @@ fn wasi_fd_filestat_set_times(
 }
 
 fn wasi_fd_readdir(
-    ctx_ptr: i32,
+    ctx_ptr: JsPtrInt,
     fd: i32,
     buf_ptr: i32,
     buf_len: i32,
@@ -1525,7 +1525,7 @@ fn completePathFilestatGet(
 }
 
 fn wasi_path_open(
-    ctx_ptr: i32,
+    ctx_ptr: JsPtrInt,
     dirfd: i32,
     _: i32,
     path_ptr: i32,
@@ -1565,7 +1565,7 @@ fn wasi_path_open(
 }
 
 fn wasi_path_filestat_get(
-    ctx_ptr: i32,
+    ctx_ptr: JsPtrInt,
     dirfd: i32,
     _: i32,
     path_ptr: i32,
@@ -1592,7 +1592,7 @@ fn wasi_path_filestat_get(
 }
 
 fn wasi_path_create_directory(
-    ctx_ptr: i32,
+    ctx_ptr: JsPtrInt,
     dirfd: i32,
     path_ptr: i32,
     path_len: i32,
@@ -1622,7 +1622,7 @@ fn wasi_path_create_directory(
 }
 
 fn wasi_path_unlink_file(
-    ctx_ptr: i32,
+    ctx_ptr: JsPtrInt,
     dirfd: i32,
     path_ptr: i32,
     path_len: i32,
@@ -1653,7 +1653,7 @@ fn wasi_path_unlink_file(
 }
 
 fn wasi_path_remove_directory(
-    ctx_ptr: i32,
+    ctx_ptr: JsPtrInt,
     dirfd: i32,
     path_ptr: i32,
     path_len: i32,
@@ -1683,7 +1683,7 @@ fn wasi_path_remove_directory(
 }
 
 fn wasi_path_rename(
-    ctx_ptr: i32,
+    ctx_ptr: JsPtrInt,
     old_dirfd: i32,
     old_path_ptr: i32,
     old_path_len: i32,
@@ -1755,7 +1755,7 @@ fn wasi_path_readlink(
 }
 
 fn wasi_path_link(
-    ctx_ptr: i32,
+    ctx_ptr: JsPtrInt,
     old_dirfd: i32,
     _: i32,
     old_path_ptr: i32,
@@ -1820,7 +1820,7 @@ fn wasi_path_symlink(
     return 52;
 }
 
-fn wasi_random_get(ctx_ptr: i32, buf_ptr: i32, buf_len: i32) callconv(.c) i32 {
+fn wasi_random_get(ctx_ptr: JsPtrInt, buf_ptr: i32, buf_len: i32) callconv(.c) i32 {
     const wasi: *Wasi = @ptrFromInt(@as(usize, @bitCast(ctx_ptr)));
     const buf = wasi.getTargetBuffer();
     defer buf.release();
@@ -1840,7 +1840,7 @@ fn wasi_random_get(ctx_ptr: i32, buf_ptr: i32, buf_len: i32) callconv(.c) i32 {
 }
 
 fn wasi_clock_time_get(
-    ctx_ptr: i32,
+    ctx_ptr: JsPtrInt,
     _: i32,
     _: i64,
     time_ptr: i32,
@@ -1851,14 +1851,14 @@ fn wasi_clock_time_get(
     return 0;
 }
 
-fn wasi_clock_res_get(ctx_ptr: i32, _: i32, res_ptr: i32) callconv(.c) i32 {
+fn wasi_clock_res_get(ctx_ptr: JsPtrInt, _: i32, res_ptr: i32) callconv(.c) i32 {
     const wasi: *Wasi = @ptrFromInt(@as(usize, @bitCast(ctx_ptr)));
     wasi.writeTargetU64(res_ptr, 1000);
     return 0;
 }
 
 fn wasi_poll_oneoff(
-    ctx_ptr: i32,
+    ctx_ptr: JsPtrInt,
     _: i32,
     _: i32,
     _: i32,
@@ -1869,7 +1869,7 @@ fn wasi_poll_oneoff(
     return 0;
 }
 
-fn wasi_proc_exit(ctx_ptr: i32, exit_code: i32) callconv(.c) void {
+fn wasi_proc_exit(ctx_ptr: JsPtrInt, exit_code: i32) callconv(.c) void {
     const wasi: *Wasi = @ptrFromInt(@as(usize, @bitCast(ctx_ptr)));
     wasi.exit_code = exit_code;
     const msg = zjb.string("wasi_proc_exit");
@@ -1877,7 +1877,7 @@ fn wasi_proc_exit(ctx_ptr: i32, exit_code: i32) callconv(.c) void {
 }
 
 fn wasi_exec_start(
-    ctx_ptr: if (@sizeOf(usize) == 8) i64 else i32,
+    ctx_ptr: JsPtrInt,
     resolve_h: zjb.Handle,
     reject_h: zjb.Handle,
 ) callconv(.c) void {
@@ -1898,7 +1898,7 @@ fn wasi_exec_start(
 }
 
 fn wasi_run_wasm_executor(
-    ctx_ptr: i32,
+    ctx_ptr: JsPtrInt,
     resolve_h: zjb.Handle,
     reject_h: zjb.Handle,
 ) callconv(.c) void {
@@ -1920,7 +1920,7 @@ fn resolveErrnoPromise(wasi: *Wasi, errno: i32) zjb.Handle {
 }
 
 fn wasi_idb_lookup_exec(
-    ctx_ptr: i32,
+    ctx_ptr: JsPtrInt,
     resolve_h: zjb.Handle,
     reject_h: zjb.Handle,
 ) callconv(.c) void {
@@ -2007,7 +2007,7 @@ fn startAsyncIdbLookup(
         "wasi_idb_lookup_exec",
         &wasi_idb_lookup_exec,
     );
-    const ctx_ptr: i32 = @bitCast(@intFromPtr(ctx));
+    const ctx_ptr: JsPtrInt = @bitCast(@intFromPtr(ctx));
     const bound_exec = executor.call(
         "bind",
         .{ zjb.Handle.null, ctx_ptr },
@@ -2021,7 +2021,7 @@ fn startAsyncIdbLookup(
 }
 
 fn wasi_path_open_suspending(
-    ctx_ptr: i32,
+    ctx_ptr: JsPtrInt,
     dirfd: i32,
     _: i32,
     path_ptr: i32,
@@ -2080,7 +2080,7 @@ fn wasi_path_open_suspending(
 }
 
 fn wasi_path_filestat_get_suspending(
-    ctx_ptr: i32,
+    ctx_ptr: JsPtrInt,
     dirfd: i32,
     _: i32,
     path_ptr: i32,
