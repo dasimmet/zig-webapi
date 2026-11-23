@@ -11,7 +11,7 @@ pub const std_options: std.Options = .{
     .log_level = .debug,
 };
 
-pub const panic = zjb.panic;
+pub const panic = webapi.panic;
 
 const WorkerApp = struct {
     scope: DedicatedScope,

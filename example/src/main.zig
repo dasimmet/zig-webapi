@@ -74,7 +74,7 @@ pub const std_options: std.Options = .{
     },
 };
 
-pub const panic = zjb.panic;
+pub const panic = webapi.panic;
 
 pub fn main(init: std.process.Init.Minimal) !void {
     _ = init;
