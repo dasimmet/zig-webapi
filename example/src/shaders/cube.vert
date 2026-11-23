@@ -28,13 +28,13 @@ vec3 rotate(vec3 point) {
 
 void main() {
     vec3 rotated = rotate(a_pos);
-    float depth = 3.0 - rotated.z;
+    float depth = 3.6 - rotated.z;
     float focal_length = 3.5 * u_scale;
     v_uv = a_uv;
     v_light = 0.55 + 0.45 * max(dot(rotate(a_normal), normalize(vec3(-0.5, 0.8, 1.0))), 0.0);
     gl_Position = vec4(
         rotated.x * focal_length / u_aspect,
-        rotated.y * focal_length,
+        rotated.y * focal_length - 0.18 * depth,
         (21.0 * depth - 40.0) / 19.0,
         depth
     );

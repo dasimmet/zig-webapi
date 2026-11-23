@@ -1593,6 +1593,32 @@ test "webapi.CanvasRenderingContext2D releases handles without leaks" {
         ctx.drawImageScaled(img, 0.0, 0.0, 64.0, 64.0);
         ctx.drawImageRect(img, 0.0, 0.0, 32.0, 32.0, 0.0, 0.0, 64.0, 64.0);
         ctx.clearRect(0.0, 0.0, 64.0, 64.0);
+        ctx.fillRect(4.0, 4.0, 56.0, 56.0);
+        ctx.strokeRect(4.0, 4.0, 56.0, 56.0);
+        ctx.save();
+        ctx.setFillStyle("#ffffff");
+        ctx.setStrokeStyle("#f7a41d");
+        ctx.setLineWidth(2.0);
+        ctx.setFont("bold 24px sans-serif");
+        var font_buf: [64]u8 = undefined;
+        _ = ctx.getFont(&font_buf);
+        ctx.setTextAlign(.center);
+        ctx.setTextBaseline(.middle);
+        ctx.setDirection(.ltr);
+        ctx.fillText("zig-webapi", 32.0, 32.0);
+        ctx.fillTextMaxWidth("zig-webapi", 32.0, 32.0, 60.0);
+        ctx.strokeText("zig-webapi", 32.0, 32.0);
+        ctx.strokeTextMaxWidth("zig-webapi", 32.0, 32.0, 60.0);
+        const metrics = ctx.measureText("zig-webapi");
+        defer metrics.release();
+        try std.testing.expect(!metrics.isNull());
+        try std.testing.expect(Canvas2D.TextMetrics.null.isNull());
+        _ = metrics.width();
+        _ = metrics.actualBoundingBoxLeft();
+        _ = metrics.actualBoundingBoxRight();
+        _ = metrics.actualBoundingBoxAscent();
+        _ = metrics.actualBoundingBoxDescent();
+        ctx.restore();
     }
     try Mock.assertNoHandleLeaks();
 }

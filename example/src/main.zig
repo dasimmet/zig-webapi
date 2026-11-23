@@ -3,6 +3,8 @@ const webapi = @import("webapi");
 
 const vertex_shader_src = @embedFile("shaders/cube.vert");
 const fragment_shader_src = @embedFile("shaders/cube.frag");
+const banner_vertex_shader_src = @embedFile("shaders/banner.vert");
+const banner_fragment_shader_src = @embedFile("shaders/banner.frag");
 
 const dom = webapi.dom;
 const Event = webapi.Event;
@@ -11,10 +13,28 @@ const WebAudio = webapi.WebAudio;
 const WebGL = webapi.WebGL;
 const zjb = webapi.zjb;
 
+const default_banner_text = "Hello from Zig WASM";
+const banner_tex_width: i32 = 1024;
+const banner_tex_height: i32 = 128;
+
 const Vertex = extern struct {
     pos: [3]f32,
     uv: [2]f32,
     normal: [3]f32,
+};
+
+const BannerVertex = extern struct {
+    pos: [2]f32,
+    uv: [2]f32,
+};
+
+const banner_vertices = [_]BannerVertex{
+    .{ .pos = .{ -0.90, 0.54 }, .uv = .{ 0.0, 1.0 } },
+    .{ .pos = .{ 0.90, 0.54 }, .uv = .{ 1.0, 1.0 } },
+    .{ .pos = .{ 0.90, 0.94 }, .uv = .{ 1.0, 0.0 } },
+    .{ .pos = .{ -0.90, 0.54 }, .uv = .{ 0.0, 1.0 } },
+    .{ .pos = .{ 0.90, 0.94 }, .uv = .{ 1.0, 0.0 } },
+    .{ .pos = .{ -0.90, 0.94 }, .uv = .{ 0.0, 0.0 } },
 };
 
 const cube_vertices = vertices: {
@@ -62,6 +82,7 @@ pub fn main(init: std.process.Init.Minimal) !void {
 
     const app = try App.init(allocator);
     app.bindUi();
+    app.updateBannerText(default_banner_text);
     app.rasterizeDice();
 
     std.log.info("webapi example initialized!", .{});
@@ -84,6 +105,12 @@ const App = struct {
     u_aspect: WebGL.UniformLocation,
     u_dice: WebGL.UniformLocation,
     u_tint: WebGL.UniformLocation,
+    banner_program: WebGL.Program,
+    banner_vbo: WebGL.Buffer,
+    banner_texture: WebGL.Texture,
+    banner_pos_loc: i32,
+    banner_uv_loc: i32,
+    u_banner: WebGL.UniformLocation,
     frame_cb: zjb.Handle,
     dice_source: ?struct { image: webapi.Image, url: zjb.Handle } = null,
     yaw: f32 = 0.65,
@@ -150,6 +177,37 @@ const App = struct {
         const u_dice = gl.getUniformLocation(program, "u_dice");
         const u_tint = gl.getUniformLocation(program, "u_tint");
 
+        const banner_program = try gl.createProgramFromSource(
+            banner_vertex_shader_src,
+            banner_fragment_shader_src,
+        );
+        errdefer banner_program.release();
+
+        const banner_vbo = gl.createBuffer();
+        errdefer banner_vbo.release();
+        gl.bindBuffer(WebGL.ARRAY_BUFFER, banner_vbo);
+        gl.bufferData(
+            WebGL.ARRAY_BUFFER,
+            std.mem.sliceAsBytes(&banner_vertices),
+            WebGL.STATIC_DRAW,
+        );
+
+        const banner_texture = gl.createTexture();
+        if (banner_texture.isNull()) return error.BannerTextureCreationFailed;
+        errdefer {
+            gl.deleteTexture(banner_texture);
+            banner_texture.release();
+        }
+        gl.activeTexture(WebGL.TEXTURE0);
+        gl.bindTexture(WebGL.TEXTURE_2D, banner_texture);
+        gl.texParameteri(WebGL.TEXTURE_2D, WebGL.TEXTURE_MIN_FILTER, WebGL.LINEAR);
+        gl.texParameteri(WebGL.TEXTURE_2D, WebGL.TEXTURE_MAG_FILTER, WebGL.LINEAR);
+        gl.texParameteri(WebGL.TEXTURE_2D, WebGL.TEXTURE_WRAP_S, WebGL.CLAMP_TO_EDGE);
+        gl.texParameteri(WebGL.TEXTURE_2D, WebGL.TEXTURE_WRAP_T, WebGL.CLAMP_TO_EDGE);
+        const banner_pos_loc = gl.getAttribLocation(banner_program, "a_pos");
+        const banner_uv_loc = gl.getAttribLocation(banner_program, "a_uv");
+        const u_banner = gl.getUniformLocation(banner_program, "u_banner");
+
         const self = try allocator.create(App);
         errdefer allocator.destroy(self);
 
@@ -170,6 +228,12 @@ const App = struct {
             .u_aspect = u_aspect,
             .u_dice = u_dice,
             .u_tint = u_tint,
+            .banner_program = banner_program,
+            .banner_vbo = banner_vbo,
+            .banner_texture = banner_texture,
+            .banner_pos_loc = banner_pos_loc,
+            .banner_uv_loc = banner_uv_loc,
+            .u_banner = u_banner,
             .frame_cb = .null,
         };
         self.frame_cb = webapi.boundFunction(App, self, onFrame);
@@ -240,6 +304,57 @@ const App = struct {
         webapi.console.@"error"("Could not load the dice texture:", .{err});
     }
 
+    fn updateBannerText(self: *App, text: []const u8) void {
+        const title = if (text.len > 0) text else default_banner_text;
+        const bitmap = dom.document().createElement("canvas");
+        defer bitmap.release();
+        bitmap.set("width", banner_tex_width);
+        bitmap.set("height", banner_tex_height);
+
+        const ctx = webapi.CanvasRenderingContext2D.fromCanvas(bitmap) catch {
+            std.log.err("Could not create the banner bitmap's 2D context", .{});
+            return;
+        };
+        defer ctx.release();
+
+        const w: f64 = @floatFromInt(banner_tex_width);
+        const h: f64 = @floatFromInt(banner_tex_height);
+        ctx.clearRect(0.0, 0.0, w, h);
+
+        ctx.setFillStyle("rgba(15, 20, 32, 0.88)");
+        ctx.fillRect(4.0, 4.0, w - 8.0, h - 8.0);
+        ctx.setStrokeStyle("#f7a41d");
+        ctx.setLineWidth(4.0);
+        ctx.strokeRect(4.0, 4.0, w - 8.0, h - 8.0);
+
+        ctx.setTextAlign(.center);
+        ctx.setTextBaseline(.middle);
+        ctx.setFont("700 44px system-ui, -apple-system, sans-serif");
+
+        const metrics = ctx.measureText(title);
+        defer metrics.release();
+        const underline_w = @min(@max(metrics.width(), 120.0), w - 64.0);
+        ctx.setFillStyle("rgba(247, 164, 29, 0.55)");
+        ctx.fillRect((w - underline_w) * 0.5, 80.0, underline_w, 3.0);
+
+        ctx.setStrokeStyle("rgba(0, 0, 0, 0.8)");
+        ctx.setLineWidth(6.0);
+        ctx.strokeTextMaxWidth(title, w * 0.5, 50.0, w - 64.0);
+        ctx.setFillStyle("#fff7e6");
+        ctx.fillTextMaxWidth(title, w * 0.5, 50.0, w - 64.0);
+
+        ctx.setFont("600 20px ui-monospace, SFMono-Regular, monospace");
+        ctx.setFillStyle("#f7a41d");
+        ctx.fillText("CanvasRenderingContext2D -> WebGL Banner", w * 0.5, 102.0);
+
+        self.gl.activeTexture(WebGL.TEXTURE0);
+        self.gl.bindTexture(WebGL.TEXTURE_2D, self.banner_texture);
+        self.gl.handle.call("texImage2D", .{
+            WebGL.TEXTURE_2D, @as(i32, 0),         WebGL.RGBA,
+            WebGL.RGBA,       WebGL.UNSIGNED_BYTE, bitmap.handle,
+        }, void);
+    }
+
     fn render(self: *App) void {
         const width = self.canvas.get("width", i32);
         const height = self.canvas.get("height", i32);
@@ -247,6 +362,8 @@ const App = struct {
         self.gl.clearColor(0.08, 0.10, 0.15, 1.0);
         self.gl.clear(WebGL.COLOR_BUFFER_BIT | WebGL.DEPTH_BUFFER_BIT);
 
+        self.gl.enable(WebGL.DEPTH_TEST);
+        self.gl.disable(WebGL.BLEND);
         self.gl.useProgram(self.program);
         self.gl.bindBuffer(WebGL.ARRAY_BUFFER, self.vbo);
         self.gl.enableVertexAttribArray(self.pos_loc);
@@ -276,6 +393,7 @@ const App = struct {
             @sizeOf(Vertex),
             @offsetOf(Vertex, "normal"),
         );
+        self.gl.activeTexture(WebGL.TEXTURE0);
         self.gl.bindTexture(WebGL.TEXTURE_2D, self.texture);
         self.gl.uniform1i(self.u_dice, 0);
         self.gl.uniform1f(self.u_yaw, self.yaw);
@@ -293,6 +411,39 @@ const App = struct {
             self.tint[2],
         );
         self.gl.drawArrays(WebGL.TRIANGLES, 0, cube_vertices.len);
+        self.gl.disableVertexAttribArray(self.pos_loc);
+        self.gl.disableVertexAttribArray(self.uv_loc);
+        self.gl.disableVertexAttribArray(self.normal_loc);
+
+        self.gl.disable(WebGL.DEPTH_TEST);
+        self.gl.enable(WebGL.BLEND);
+        self.gl.blendFunc(WebGL.SRC_ALPHA, WebGL.ONE_MINUS_SRC_ALPHA);
+        self.gl.useProgram(self.banner_program);
+        self.gl.bindBuffer(WebGL.ARRAY_BUFFER, self.banner_vbo);
+        self.gl.enableVertexAttribArray(self.banner_pos_loc);
+        self.gl.vertexAttribPointer(
+            self.banner_pos_loc,
+            2,
+            WebGL.FLOAT,
+            false,
+            @sizeOf(BannerVertex),
+            @offsetOf(BannerVertex, "pos"),
+        );
+        self.gl.enableVertexAttribArray(self.banner_uv_loc);
+        self.gl.vertexAttribPointer(
+            self.banner_uv_loc,
+            2,
+            WebGL.FLOAT,
+            false,
+            @sizeOf(BannerVertex),
+            @offsetOf(BannerVertex, "uv"),
+        );
+        self.gl.activeTexture(WebGL.TEXTURE0);
+        self.gl.bindTexture(WebGL.TEXTURE_2D, self.banner_texture);
+        self.gl.uniform1i(self.u_banner, 0);
+        self.gl.drawArrays(WebGL.TRIANGLES, 0, banner_vertices.len);
+        self.gl.disableVertexAttribArray(self.banner_pos_loc);
+        self.gl.disableVertexAttribArray(self.banner_uv_loc);
     }
 
     fn onFrame(self: *App, ts_h: zjb.Handle) void {
@@ -524,6 +675,7 @@ const App = struct {
             "echo-output",
             if (val.len > 0) val else "(empty)",
         );
+        self.updateBannerText(val);
     }
 
     fn onWindowKeydown(_: *App, ev: Event.KeyboardEvent) void {
