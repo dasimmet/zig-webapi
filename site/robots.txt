@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://dasimmet.github.io/zig-webapi/sitemap.xml

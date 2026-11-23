@@ -3,8 +3,49 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>webapi — Type-Safe Zig WebAssembly Browser &amp; WASI Bindings</title>
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="robots" content="index, follow">
+  <meta name="author" content="Tobias Simetsreiter">
+  <meta name="description" content="zig-webapi (webapi) provides type-safe Zig WebAssembly bindings for DOM, WebGL2, WebRTC, Fetch, IndexedDB, Web Workers, Web Audio, and WASI Snapshot Preview 1 with zero-global callbacks.">
+  <meta name="keywords" content="zig webapi, zig-webapi, Zig WebAssembly, Zig DOM bindings, Zig WebGL, Zig WebRTC, Zig WASI, wasm32-freestanding, wasm64-freestanding, zig-javascript-bridge">
+  <title>zig-webapi (webapi) — Type-Safe Zig WebAssembly Browser &amp; WASI Bindings</title>
+  <link rel="canonical" href="https://dasimmet.github.io/zig-webapi/">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="zig-webapi">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:url" content="https://dasimmet.github.io/zig-webapi/">
+  <meta property="og:title" content="zig-webapi — Type-Safe Zig WebAssembly Browser &amp; WASI Bindings">
+  <meta property="og:description" content="Type-safe Zig WebAssembly wrappers for DOM, WebGL2, WebRTC, Fetch, IndexedDB, Workers, Audio, and WASI Preview 1 with context-bound callbacks and host leak-checked mocks.">
+  <meta property="og:image" content="https://dasimmet.github.io/zig-webapi/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="zig-webapi — Type-safe Zig WebAssembly Browser and WASI bindings">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="zig-webapi — Type-Safe Zig WebAssembly Browser &amp; WASI Bindings">
+  <meta name="twitter:description" content="Zig 0.17.1 WebAssembly browser &amp; WASI bindings for DOM, WebGL2, WebRTC, IndexedDB, Fetch, and Workers with host unit-test mocks.">
+  <meta name="twitter:image" content="https://dasimmet.github.io/zig-webapi/og-image.png">
   <link rel="stylesheet" href="style.css">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    "name": "zig-webapi",
+    "alternateName": "webapi",
+    "url": "https://dasimmet.github.io/zig-webapi/",
+    "codeRepository": "https://github.com/dasimmet/zig-webapi",
+    "programmingLanguage": "Zig",
+    "runtimePlatform": "WebAssembly (wasm32-freestanding, wasm64-freestanding)",
+    "license": "https://opensource.org/licenses/MIT",
+    "author": {
+      "@type": "Person",
+      "name": "Tobias Simetsreiter"
+    },
+    "description": "Type-safe Zig WebAssembly browser and WASI API wrappers around zig-javascript-bridge (zjb) with zero-global context-bound callbacks and host-side leak-checked mocks."
+  }
+  </script>
 </head>
 <body>
   <header class="hero">
@@ -13,19 +54,19 @@
       <h1>webapi</h1>
       <p class="lead">
         Type-safe Zig WebAssembly browser and WASI API wrappers around
-        <a href="https://github.com/scottredig/zig-javascript-bridge">zig-javascript-bridge</a>
+        <a href="https://github.com/scottredig/zig-javascript-bridge" rel="noopener noreferrer">zig-javascript-bridge</a>
         (<code>zjb</code>), with zero-global context-bound callbacks and host-side leak-checked mocks.
       </p>
-      <div class="actions">
+      <nav class="actions" aria-label="Primary actions">
         <a class="btn primary" href="./docs/">API Documentation</a>
         <a class="btn secondary" href="./example/">Live Interactive Example</a>
-        <a class="btn secondary" href="https://github.com/dasimmet/zig-webapi">GitHub Repository</a>
-      </div>
+        <a class="btn secondary" href="https://github.com/dasimmet/zig-webapi" rel="noopener noreferrer">GitHub Repository</a>
+      </nav>
     </div>
   </header>
 
   <main class="container">
-    <section class="grid">
+    <section class="grid" aria-label="Core capabilities">
       <article class="card">
         <h2>DOM &amp; Typed Events</h2>
         <p>
@@ -91,15 +132,28 @@ zig build fmt -Dfmtcheck=true
 zig build docs</code></pre>
       </section>
     </div>
+
+    <section class="panel" aria-label="Supported Web APIs and Showcase">
+      <h2>Supported Web &amp; WASI Modules</h2>
+      <p>
+        Explore full signatures in the <a href="./docs/">generated API reference</a> or try live bindings in the
+        <a href="./example/">interactive demo</a>: <code>dom</code>, <code>Event</code>, <code>Promise</code>,
+        <code>WebGL</code>, <code>CanvasRenderingContext2D</code>, <code>Fetch</code>, <code>IndexedDb</code>,
+        <code>WebRTC</code>, <code>WebSocket</code>, <code>BroadcastChannel</code>, <code>Crypto</code>,
+        <code>WebAudio</code>, <code>Worker</code>, <code>CompressionStream</code>, <code>WebAssembly</code>, and <code>Wasi</code>.
+        Built with <code>zig-webapi</code>: <a href="https://dasimmet.codeberg.page/tabletop/" rel="noopener noreferrer">Tabletop 3D Virtual Physics Sandbox</a>.
+      </p>
+    </section>
   </main>
 
   <footer class="footer container">
     <p>
       Built with Zig 0.17.1 &middot;
-      <a href="https://github.com/dasimmet/zig-webapi">GitHub</a> &middot;
+      <a href="https://github.com/dasimmet/zig-webapi" rel="noopener noreferrer">GitHub</a> &middot;
       <a href="./docs/">API Docs</a> &middot;
       <a href="./example/">Live Example</a> &middot;
-      <a href="https://github.com/scottredig/zig-javascript-bridge">zig-javascript-bridge</a>
+      <a href="https://dasimmet.codeberg.page/tabletop/" rel="noopener noreferrer">Tabletop 3D</a> &middot;
+      <a href="https://github.com/scottredig/zig-javascript-bridge" rel="noopener noreferrer">zig-javascript-bridge</a>
     </p>
   </footer>
 </body>

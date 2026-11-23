@@ -3,7 +3,29 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>webapi Example</title>
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="robots" content="index, follow">
+  <meta name="author" content="Tobias Simetsreiter">
+  <meta name="description" content="Interactive Zig WebAssembly demo powered by zig-webapi: WebGL2 3D rendering, 2D canvas banner, typed DOM events, Fetch Promises, Web Crypto, WASI Preview 1, Web Workers, and Web Audio.">
+  <meta name="keywords" content="zig-webapi example, Zig WebAssembly demo, Zig WebGL2, Zig WASI browser, Zig Web Workers, Zig Web Audio, zjb">
+  <title>zig-webapi Live Example — Interactive Zig WebAssembly &amp; Browser APIs Demo</title>
+  <link rel="canonical" href="https://dasimmet.github.io/zig-webapi/example/">
+  <link rel="icon" type="image/svg+xml" href="dice.svg">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="zig-webapi">
+  <meta property="og:url" content="https://dasimmet.github.io/zig-webapi/example/">
+  <meta property="og:title" content="zig-webapi Live Example — Interactive Zig WASM Demo">
+  <meta property="og:description" content="Try WebGL2, typed DOM events, Fetch Promises, Web Crypto, WASI Hello World, Web Workers, and Web Audio compiled from Zig to WebAssembly.">
+  <meta property="og:image" content="https://dasimmet.github.io/zig-webapi/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="zig-webapi — Type-safe Zig WebAssembly Browser and WASI bindings">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="zig-webapi Live Example — Interactive Zig WASM Demo">
+  <meta name="twitter:description" content="Interactive showcase of Zig WebAssembly browser API wrappers with zero-global callbacks.">
+  <meta name="twitter:image" content="https://dasimmet.github.io/zig-webapi/og-image.png">
   <link rel="stylesheet" href="style.css">
   <link rel="modulepreload" as="script" type="text/javascript" href="index.js">
   <link rel="modulepreload" as="script" type="text/javascript" href="zjb_bindings.js">
@@ -14,10 +36,29 @@
   <link rel="prefetch" type="text/javascript" href="worker.js">
   <link rel="prefetch" type="text/javascript" href="worker_zjb.js">
   <link rel="prefetch" type="application/wasm" href="worker.wasm">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "zig-webapi Live Example",
+    "url": "https://dasimmet.github.io/zig-webapi/example/",
+    "isPartOf": "https://dasimmet.github.io/zig-webapi/",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Any (Web Browser)",
+    "browserRequirements": "Requires WebGL2 and WebAssembly",
+    "description": "Interactive browser demonstration of zig-webapi covering WebGL2, 2D Canvas, DOM events, Fetch Promises, Web Crypto, WASI Preview 1, Web Workers, and Web Audio.",
+    "image": "https://dasimmet.github.io/zig-webapi/og-image.png"
+  }
+  </script>
 </head>
 <body>
   <main class="container">
     <header>
+      <p class="meta">
+        <a href="../">&larr; zig-webapi Home</a> &middot;
+        <a href="../docs/">API Documentation</a> &middot;
+        <a href="https://github.com/dasimmet/zig-webapi" rel="noopener noreferrer">GitHub</a>
+      </p>
       <h1>webapi Example</h1>
       <p class="subtitle">Zig + WebAssembly + Browser APIs with zero global callbacks</p>
       <p class="meta">URL: <code id="page-url">loading...</code></p>
@@ -25,7 +66,7 @@
 
     <section class="panel panel-wide">
       <h2>WebGL 3D Die &amp; 2D Canvas Text Banner</h2>
-      <canvas id="gl-canvas" width="960" height="540"></canvas>
+      <canvas id="gl-canvas" width="960" height="540" role="img" aria-label="Interactive WebGL2 3D die and textured 2D canvas banner"></canvas>
       <p class="meta">Drag with mouse or touch to rotate, scroll to zoom, double-click to reset. Type in the input panel to update the textured banner.</p>
       <div class="row">
         <button id="btn-color" type="button">Randomize Tint</button>
@@ -87,6 +128,12 @@
       <pre id="audio-output">Click a button to play a generated PCM sine buffer or decode blue-beep.mp3.</pre>
     </section>
   </main>
+
+  <noscript>
+    <div class="container" style="margin-top:1rem;">
+      <p>JavaScript and WebAssembly are required to run the live interactive bindings in this demo. See the <a href="../docs/">zig-webapi API documentation</a>.</p>
+    </div>
+  </noscript>
 
   <script type="module" src="index.js"></script>
 </body>
