@@ -2121,3 +2121,258 @@ test "webapi.File.List, dom.DataTransfer, DragEvent, and Element.files integrati
     }
     try Mock.assertNoHandleLeaks();
 }
+
+test "webapi.MediaStream, MediaDevices, MediaStreamTrack, MediaDeviceInfo, and MediaStreamTrackEvent without handle leaks" {
+    const warmup = webapi.codec.encode(zjb.constString("").asHandle());
+    warmup.release();
+
+    Mock.reset();
+    {
+        const MediaStream = webapi.MediaStream;
+        const MediaDevices = webapi.MediaDevices;
+        const MediaStreamTrack = webapi.MediaStreamTrack;
+        const MediaDeviceInfo = webapi.MediaDeviceInfo;
+        const TrackEvent = webapi.Event.EventFor("addtrack");
+
+        try std.testing.expect(TrackEvent == webapi.Event.MediaStreamTrackEvent);
+        try std.testing.expect(
+            webapi.Event.EventFor("removetrack") == webapi.Event.MediaStreamTrackEvent,
+        );
+        try std.testing.expect(MediaStream.null.isNull());
+        try std.testing.expect(MediaDevices.null.isNull());
+        try std.testing.expect(MediaStreamTrack.null.isNull());
+        try std.testing.expect(MediaStreamTrack.List.null.isNull());
+        try std.testing.expect(MediaDeviceInfo.null.isNull());
+        try std.testing.expect(MediaDeviceInfo.List.null.isNull());
+        try std.testing.expect(TrackEvent.null.isNull());
+
+        try std.testing.expectEqual(MediaStreamTrack.Kind.audio, MediaStreamTrack.Kind.fromString("audio"));
+        try std.testing.expectEqual(MediaStreamTrack.Kind.video, MediaStreamTrack.Kind.fromString("video"));
+        try std.testing.expectEqual(MediaStreamTrack.Kind.unknown, MediaStreamTrack.Kind.fromString("other"));
+        try std.testing.expectEqual(MediaStreamTrack.ReadyState.live, MediaStreamTrack.ReadyState.fromString("live"));
+        try std.testing.expectEqual(MediaStreamTrack.ReadyState.ended, MediaStreamTrack.ReadyState.fromString("ended"));
+        try std.testing.expectEqual(MediaDeviceInfo.Kind.audioinput, MediaDeviceInfo.Kind.fromString("audioinput"));
+        try std.testing.expectEqual(MediaDeviceInfo.Kind.audiooutput, MediaDeviceInfo.Kind.fromString("audiooutput"));
+        try std.testing.expectEqual(MediaDeviceInfo.Kind.videoinput, MediaDeviceInfo.Kind.fromString("videoinput"));
+
+        _ = MediaStream.isSupported();
+        _ = MediaDevices.isSupported();
+        _ = MediaDevices.isGetUserMediaSupported();
+        _ = MediaDevices.isGetDisplayMediaSupported();
+
+        const nav = dom.window().navigator();
+        defer nav.release();
+        const nav_md = nav.mediaDevices();
+        defer nav_md.release();
+
+        const md = MediaDevices.fromNavigator();
+        defer md.release();
+
+        const constraints: MediaDevices.Constraints = .{
+            .audio = .{
+                .constraints = .{
+                    .device_id = "mic-0",
+                    .echo_cancellation = true,
+                    .noise_suppression = true,
+                    .auto_gain_control = false,
+                    .sample_rate = 48_000,
+                    .channel_count = 1,
+                },
+            },
+            .video = .{
+                .constraints = .{
+                    .device_id = "cam-0",
+                    .width = 1280,
+                    .height = 720,
+                    .frame_rate = 30.0,
+                    .facing_mode = .user,
+                },
+            },
+        };
+        const c_h = constraints.toHandle();
+        c_h.release();
+
+        const simple_c: MediaDevices.Constraints = .{
+            .audio = .enabled,
+            .video = .disabled,
+        };
+        if (md.getUserMedia(simple_c)) |p| p.release();
+        if (md.getUserMedia(constraints)) |p| p.release();
+        if (md.getDisplayMedia(null)) |p| p.release();
+        if (md.getDisplayMedia(.{ .audio = true, .video = true })) |p| p.release();
+        if (md.enumerateDevices()) |p| p.release();
+
+        const stream = MediaStream.init();
+        defer stream.release();
+        var buf: [64]u8 = undefined;
+        _ = stream.id(&buf);
+        _ = stream.active();
+
+        const track_a = MediaStreamTrack.fromHandle(Mock.allocHandle("MediaStreamTrack:audio"));
+        defer track_a.release();
+        _ = track_a.id(&buf);
+        _ = track_a.label(&buf);
+        _ = track_a.kind();
+        _ = track_a.readyState();
+        _ = track_a.enabled();
+        track_a.setEnabled(false);
+        _ = track_a.muted();
+        _ = track_a.getSettings();
+        const cloned_track = track_a.clone();
+        cloned_track.stop();
+        cloned_track.release();
+
+        const from_tracks = MediaStream.fromTracks(&.{track_a});
+        defer from_tracks.release();
+        from_tracks.addTrack(track_a);
+        from_tracks.removeTrack(track_a);
+        const cloned_stream = from_tracks.clone();
+        cloned_stream.stopAllTracks();
+        cloned_stream.release();
+
+        var all_tracks = stream.getTracks();
+        all_tracks.release();
+        var audio_tracks = stream.getAudioTracks();
+        audio_tracks.release();
+        var video_tracks = stream.getVideoTracks();
+        video_tracks.release();
+
+        // Verify non-empty list iteration for MediaStreamTrack.List and MediaDeviceInfo.List
+        var mock_track_list = MediaStreamTrack.List.fromHandle(Mock.allocString("ab"));
+        defer mock_track_list.release();
+        try std.testing.expectEqual(@as(usize, 2), mock_track_list.len());
+        while (mock_track_list.next()) |item| {
+            item.stop();
+            item.release();
+        }
+        try std.testing.expect(mock_track_list.get(99) == null);
+
+        var mock_dev_list = MediaDeviceInfo.List.fromHandle(Mock.allocString("xy"));
+        defer mock_dev_list.release();
+        try std.testing.expectEqual(@as(usize, 2), mock_dev_list.len());
+        while (mock_dev_list.next()) |dev| {
+            _ = dev.deviceId(&buf);
+            _ = dev.groupId(&buf);
+            _ = dev.label(&buf);
+            _ = dev.kind();
+            dev.release();
+        }
+
+        const track_ev = TrackEvent.fromHandle(Mock.allocHandle("MediaStreamTrackEvent"));
+        defer track_ev.release();
+        const ev_track = track_ev.track();
+        ev_track.release();
+    }
+    try Mock.assertNoHandleLeaks();
+}
+
+test "WebAudio MediaStreamAudioSourceNode, AnalyserNode, dom.HTMLMediaElement, and dom.HTMLVideoElement without handle leaks" {
+    const warmup = webapi.codec.encode(zjb.constString("").asHandle());
+    warmup.release();
+
+    Mock.reset();
+    {
+        const WebAudio = webapi.WebAudio;
+        const ctx = WebAudio.AudioContext.init();
+        defer ctx.release();
+
+        const stream = webapi.MediaStream.init();
+        defer stream.release();
+
+        const src_node = ctx.createMediaStreamSource(stream);
+        defer src_node.release();
+        try std.testing.expect(!src_node.isNull());
+        const node_stream = src_node.mediaStream();
+        node_stream.release();
+
+        const analyser = ctx.createAnalyser();
+        defer analyser.release();
+        try std.testing.expect(!analyser.isNull());
+
+        analyser.setFftSize(512);
+        _ = analyser.fftSize();
+        _ = analyser.frequencyBinCount();
+        _ = analyser.minDecibels();
+        _ = analyser.maxDecibels();
+        analyser.setSmoothingTimeConstant(0.8);
+        _ = analyser.smoothingTimeConstant();
+
+        var byte_wave: [64]u8 = @splat(128);
+        var byte_freq: [32]u8 = @splat(0);
+        var float_wave: [64]f32 = @splat(0.0);
+        var float_freq: [32]f32 = @splat(-100.0);
+        analyser.getByteTimeDomainData(&byte_wave);
+        analyser.getByteFrequencyData(&byte_freq);
+        analyser.getFloatTimeDomainData(&float_wave);
+        analyser.getFloatFrequencyData(&float_freq);
+
+        src_node.connect(analyser);
+        const dest = ctx.destination();
+        defer dest.release();
+        analyser.connect(dest);
+        analyser.disconnect();
+        src_node.disconnect();
+
+        const sus_p = ctx.@"suspend"();
+        sus_p.release();
+        const close_p = ctx.close();
+        close_p.release();
+
+        const video_el = dom.document().createElement("video");
+        defer video_el.release();
+        const video = video_el.asVideo();
+        const media = video_el.asMedia();
+
+        video.setPlaysInline(true);
+        _ = video.playsInline();
+        video.setWidth(640);
+        video.setHeight(360);
+        _ = video.width();
+        _ = video.height();
+        _ = video.videoWidth();
+        _ = video.videoHeight();
+
+        video.setMuted(true);
+        video.setAutoplay(true);
+        media.setControls(false);
+        media.setLoop(false);
+        media.setVolume(0.75);
+        media.setCurrentTime(0.0);
+        _ = media.muted();
+        _ = media.autoplay();
+        _ = media.controls();
+        _ = media.loop();
+        _ = media.paused();
+        _ = media.ended();
+        _ = media.volume();
+        _ = media.currentTime();
+        _ = media.duration();
+        _ = media.readyState();
+
+        video.setSrcObject(stream);
+        if (video.srcObject()) |so| so.release();
+        video.setSrcObject(null);
+
+        media.setSrc("sample.webm");
+        var src_buf: [64]u8 = undefined;
+        _ = media.getSrc(&src_buf);
+
+        const play_p = video.play();
+        play_p.release();
+        video.pause();
+        media.load();
+
+        const canvas_el = dom.document().createElement("canvas");
+        defer canvas_el.release();
+        const c2d = try webapi.CanvasRenderingContext2D.fromCanvas(canvas_el);
+        defer c2d.release();
+        c2d.drawImageScaled(video, 0.0, 0.0, 320.0, 180.0);
+        c2d.beginPath();
+        c2d.moveTo(0.0, 90.0);
+        c2d.lineTo(320.0, 90.0);
+        c2d.closePath();
+        c2d.stroke();
+        c2d.fill();
+    }
+    try Mock.assertNoHandleLeaks();
+}

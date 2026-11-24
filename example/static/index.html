@@ -129,6 +129,29 @@
     </section>
 
     <section class="panel">
+      <h2>Audio Input (<code>MediaDevices</code> + <code>AnalyserNode</code>)</h2>
+      <canvas id="mic-canvas" class="media-canvas" width="560" height="140" role="img" aria-label="Live microphone waveform and FFT spectrum analyser"></canvas>
+      <div class="row">
+        <button id="btn-mic-toggle" type="button">Start Microphone</button>
+        <button id="btn-media-devices" type="button">Enumerate Devices</button>
+      </div>
+      <pre id="mic-output">Click "Start Microphone" to stream live audio into WebAudio.AnalyserNode, or enumerate audio/video devices.</pre>
+    </section>
+
+    <section class="panel">
+      <h2>Video Input (<code>getUserMedia</code> + <code>HTMLVideoElement</code>)</h2>
+      <div class="video-grid">
+        <video id="cam-video" class="media-box" width="640" height="360" autoplay muted playsinline></video>
+        <canvas id="cam-snapshot" class="media-box" width="640" height="360" role="img" aria-label="Captured video frame snapshot"></canvas>
+      </div>
+      <div class="row">
+        <button id="btn-cam-toggle" type="button">Start Camera</button>
+        <button id="btn-cam-snap" type="button">Capture Frame</button>
+      </div>
+      <pre id="cam-output">Click "Start Camera" to preview a live MediaStream in &lt;video&gt; and capture frames to &lt;canvas&gt;.</pre>
+    </section>
+
+    <section class="panel">
       <h2>Geolocation API (<code>navigator.geolocation</code>)</h2>
       <div class="row">
         <button id="btn-geo-once" type="button">Get Current Position</button>

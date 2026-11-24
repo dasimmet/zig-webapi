@@ -7,6 +7,8 @@ const webapi = @import("../webapi.zig");
 const CSSStyleDeclaration = @import("CSSStyleDeclaration.zig");
 const DOMRect = @import("DOMRect.zig");
 const HTMLIFrameElement = @import("HTMLIFrameElement.zig");
+const HTMLMediaElement = @import("HTMLMediaElement.zig");
+const HTMLVideoElement = @import("HTMLVideoElement.zig");
 const TokenList = @import("TokenList.zig");
 
 // 2. Shortcuts on imports
@@ -381,6 +383,16 @@ pub fn setFiles(self: Element, file_list: webapi.File.List) void {
 /// Views this Element handle as an HTMLIFrameElement.
 pub fn asIFrame(self: Element) HTMLIFrameElement {
     return HTMLIFrameElement.fromElement(self);
+}
+
+/// Views this Element handle as an `HTMLMediaElement` (`<audio>` or `<video>`).
+pub fn asMedia(self: Element) HTMLMediaElement {
+    return HTMLMediaElement.fromElement(self);
+}
+
+/// Views this Element handle as an `HTMLVideoElement` (`<video>`).
+pub fn asVideo(self: Element) HTMLVideoElement {
+    return HTMLVideoElement.fromElement(self);
 }
 
 /// Returns the element's `scrollHeight` in CSS pixels.

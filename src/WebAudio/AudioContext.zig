@@ -8,10 +8,13 @@ const WebAudio = @import("../WebAudio.zig");
 
 // 2. Shortcuts on imports
 const AudioContext = @This();
+const AnalyserNode = WebAudio.AnalyserNode;
 const AudioBuffer = WebAudio.AudioBuffer;
 const AudioBufferSourceNode = WebAudio.AudioBufferSourceNode;
 const AudioDestinationNode = WebAudio.AudioDestinationNode;
 const ContextState = WebAudio.ContextState;
+const MediaStream = webapi.MediaStream;
+const MediaStreamAudioSourceNode = WebAudio.MediaStreamAudioSourceNode;
 const Promise = webapi.Promise;
 const zjb = webapi.zjb;
 
@@ -73,6 +76,22 @@ pub fn @"resume"(self: AudioContext) Promise.Typed(void) {
     return .fromHandle(self.handle.call("resume", .{}, zjb.Handle));
 }
 
+/// Suspends progression of time in the `AudioContext`, releasing audio hardware access.
+/// Caller must `.release()` the returned `Promise`.
+/// https://developer.mozilla.org/en-US/docs/Web/API/AudioContext/suspend
+pub fn @"suspend"(self: AudioContext) Promise.Typed(void) {
+    std.debug.assert(!self.handle.isNull());
+    return .fromHandle(self.handle.call("suspend", .{}, zjb.Handle));
+}
+
+/// Closes the `AudioContext`, releasing any system audio resources it uses.
+/// Caller must `.release()` the returned `Promise`.
+/// https://developer.mozilla.org/en-US/docs/Web/API/AudioContext/close
+pub fn close(self: AudioContext) Promise.Typed(void) {
+    std.debug.assert(!self.handle.isNull());
+    return .fromHandle(self.handle.call("close", .{}, zjb.Handle));
+}
+
 /// Returns the context sample rate in samples per second (Hz).
 /// https://developer.mozilla.org/en-US/docs/Web/API/BaseAudioContext/sampleRate
 pub fn sampleRate(self: AudioContext) f32 {
@@ -119,6 +138,31 @@ pub fn createBufferSource(self: AudioContext) AudioBufferSourceNode {
     std.debug.assert(!self.handle.isNull());
     return AudioBufferSourceNode.fromHandle(
         self.handle.call("createBufferSource", .{}, zjb.Handle),
+    );
+}
+
+/// Creates a `MediaStreamAudioSourceNode` reading audio from `stream` (e.g. a
+/// microphone `MediaStream` returned by `MediaDevices.getUserMedia`).
+/// Caller must `.release()` when done.
+/// https://developer.mozilla.org/en-US/docs/Web/API/AudioContext/createMediaStreamSource
+pub fn createMediaStreamSource(
+    self: AudioContext,
+    stream: MediaStream,
+) MediaStreamAudioSourceNode {
+    std.debug.assert(!self.handle.isNull());
+    std.debug.assert(!stream.isNull());
+    return MediaStreamAudioSourceNode.fromHandle(
+        self.handle.call("createMediaStreamSource", .{stream.handle}, zjb.Handle),
+    );
+}
+
+/// Creates an `AnalyserNode` for real-time time-domain waveform and FFT
+/// frequency inspection. Caller must `.release()` when done.
+/// https://developer.mozilla.org/en-US/docs/Web/API/BaseAudioContext/createAnalyser
+pub fn createAnalyser(self: AudioContext) AnalyserNode {
+    std.debug.assert(!self.handle.isNull());
+    return AnalyserNode.fromHandle(
+        self.handle.call("createAnalyser", .{}, zjb.Handle),
     );
 }
 

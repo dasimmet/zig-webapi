@@ -17,6 +17,7 @@ pub const HashChangeEvent = @import("Event/HashChangeEvent.zig");
 pub const InputEvent = @import("Event/InputEvent.zig");
 pub const KeyboardEvent = @import("Event/KeyboardEvent.zig");
 pub const MediaQueryListEvent = @import("Event/MediaQueryListEvent.zig");
+pub const MediaStreamTrackEvent = @import("Event/MediaStreamTrackEvent.zig");
 pub const MessageEvent = @import("Event/MessageEvent.zig");
 pub const MouseEvent = @import("Event/MouseEvent.zig");
 pub const PointerEvent = @import("Event/PointerEvent.zig");
@@ -214,6 +215,8 @@ pub fn EventFor(comptime event_name: []const u8) type {
         .{ "icecandidate", RTCPeerConnectionIceEvent },
         .{ "icecandidateerror", RTCPeerConnectionIceErrorEvent },
         .{ "datachannel", RTCDataChannelEvent },
+        .{ "addtrack", MediaStreamTrackEvent },
+        .{ "removetrack", MediaStreamTrackEvent },
     };
     inline for (mappings) |entry| {
         if (std.mem.eql(u8, event_name, entry[0])) return entry[1];

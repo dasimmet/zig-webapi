@@ -5,9 +5,12 @@
 const std = @import("std");
 const webapi = @import("webapi.zig");
 
+pub const AnalyserNode = @import("WebAudio/AnalyserNode.zig");
 pub const AudioBuffer = @import("WebAudio/AudioBuffer.zig");
 pub const AudioBufferSourceNode = @import("WebAudio/AudioBufferSourceNode.zig");
 pub const AudioContext = @import("WebAudio/AudioContext.zig");
+pub const MediaStreamAudioSourceNode =
+    @import("WebAudio/MediaStreamAudioSourceNode.zig");
 
 // 2. Shortcuts on imports
 const zjb = webapi.zjb;

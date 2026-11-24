@@ -12,6 +12,7 @@ const Share = @import("Share.zig");
 
 // 2. Shortcuts on imports
 const Navigator = @This();
+const MediaDevices = webapi.MediaDevices;
 const zjb = webapi.zjb;
 
 // 3. File-level struct members
@@ -75,6 +76,18 @@ pub fn geolocation(self: Navigator) Geolocation {
     const h = self.handle.get("geolocation", zjb.Handle);
     if (h.isNull()) return .null;
     return Geolocation.fromHandle(h);
+}
+
+/// Returns the `MediaDevices` interface for audio/video input capture and
+/// device enumeration, or `.null` if unsupported (e.g. insecure context).
+/// Caller must call `.release()` when non-null.
+/// https://developer.mozilla.org/en-US/docs/Web/API/Navigator/mediaDevices
+pub fn mediaDevices(self: Navigator) MediaDevices {
+    std.debug.assert(!self.handle.isNull());
+    std.debug.assert(@backingInt(self.handle) != 0);
+    const h = self.handle.get("mediaDevices", zjb.Handle);
+    if (h.isNull()) return .null;
+    return MediaDevices.fromHandle(h);
 }
 
 /// Returns true if `navigator.share` is defined on this `Navigator`.

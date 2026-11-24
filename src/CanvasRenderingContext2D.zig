@@ -149,6 +149,54 @@ pub fn strokeRect(
     self.handle.call("strokeRect", .{ x, y, w, h }, void);
 }
 
+/// Starts a new 2D drawing path, emptying the list of sub-paths.
+/// https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/beginPath
+pub fn beginPath(self: CanvasRenderingContext2D) void {
+    std.debug.assert(!self.handle.isNull());
+    std.debug.assert(@backingInt(self.handle) != 0);
+    self.handle.call("beginPath", .{}, void);
+}
+
+/// Connects the current sub-path back to its start point.
+/// https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/closePath
+pub fn closePath(self: CanvasRenderingContext2D) void {
+    std.debug.assert(!self.handle.isNull());
+    std.debug.assert(@backingInt(self.handle) != 0);
+    self.handle.call("closePath", .{}, void);
+}
+
+/// Begins a new sub-path at `(x, y)`.
+/// https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/moveTo
+pub fn moveTo(self: CanvasRenderingContext2D, x: f64, y: f64) void {
+    std.debug.assert(!self.handle.isNull());
+    std.debug.assert(std.math.isFinite(x) and std.math.isFinite(y));
+    self.handle.call("moveTo", .{ x, y }, void);
+}
+
+/// Connects the last sub-path point to `(x, y)` with a straight line.
+/// https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/lineTo
+pub fn lineTo(self: CanvasRenderingContext2D, x: f64, y: f64) void {
+    std.debug.assert(!self.handle.isNull());
+    std.debug.assert(std.math.isFinite(x) and std.math.isFinite(y));
+    self.handle.call("lineTo", .{ x, y }, void);
+}
+
+/// Strokes the current path using `strokeStyle` and `lineWidth`.
+/// https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/stroke
+pub fn stroke(self: CanvasRenderingContext2D) void {
+    std.debug.assert(!self.handle.isNull());
+    std.debug.assert(@backingInt(self.handle) != 0);
+    self.handle.call("stroke", .{}, void);
+}
+
+/// Fills the current path using `fillStyle`.
+/// https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/fill
+pub fn fill(self: CanvasRenderingContext2D) void {
+    std.debug.assert(!self.handle.isNull());
+    std.debug.assert(@backingInt(self.handle) != 0);
+    self.handle.call("fill", .{}, void);
+}
+
 /// Saves the current drawing state onto the context state stack.
 /// https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/save
 pub fn save(self: CanvasRenderingContext2D) void {
