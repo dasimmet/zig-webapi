@@ -2034,3 +2034,90 @@ test "webapi.File and dom.Share Data, Navigator.canShare, and Navigator.share wi
     }
     try Mock.assertNoHandleLeaks();
 }
+
+test "webapi.File.List, dom.DataTransfer, DragEvent, and Element.files integration without handle leaks" {
+    const warmup = webapi.codec.encode(zjb.constString("").asHandle());
+    warmup.release();
+
+    Mock.reset();
+    {
+        const File = webapi.File;
+        const DataTransfer = dom.DataTransfer;
+        const DragEvent = webapi.Event.EventFor("drop");
+
+        try std.testing.expect(DataTransfer.null.isNull());
+        try std.testing.expect(File.List.null.isNull());
+        try std.testing.expect(DataTransfer.Item.null.isNull());
+        try std.testing.expect(DataTransfer.ItemList.null.isNull());
+        _ = DataTransfer.isSupported();
+
+        const dt = DataTransfer.init();
+        defer dt.release();
+        try std.testing.expect(!dt.isNull());
+
+        const f = File.fromText("dropped content", "drop.txt", .{ .type = "text/plain" });
+        defer f.release();
+
+        if (dt.addFile(f)) |item| {
+            defer item.release();
+            _ = item.kind();
+            var mime_buf: [64]u8 = undefined;
+            _ = item.mimeType(&mime_buf);
+            if (item.getAsFile()) |as_file| {
+                as_file.release();
+            }
+            const Ctx = struct {
+                fn onStr(_: *@This(), _: zjb.Handle) void {}
+            };
+            var ctx: Ctx = .{};
+            item.getAsString(Ctx, &ctx, Ctx.onStr);
+        }
+
+        const item_list = dt.items();
+        defer item_list.release();
+        if (item_list.addText("hello", "text/plain")) |txt_item| {
+            txt_item.release();
+        }
+        var it_items = item_list;
+        while (it_items.next()) |it| {
+            it.release();
+        }
+        item_list.remove(0);
+        item_list.clear();
+
+        var file_list = dt.files();
+        defer file_list.release();
+        _ = file_list.len();
+        if (file_list.get(0)) |first_file| {
+            first_file.release();
+        }
+        while (file_list.next()) |next_file| {
+            next_file.release();
+        }
+
+        dt.setDropEffect(.copy);
+        _ = dt.dropEffect();
+        dt.setEffectAllowed(.copyMove);
+        _ = dt.effectAllowed();
+        dt.setData("text/plain", "drag payload");
+        if (try dt.getDataAlloc(std.testing.allocator, "text/plain")) |txt| {
+            std.testing.allocator.free(txt);
+        }
+        dt.clearData("text/plain");
+        dt.clearData(null);
+        const types_h = dt.types();
+        types_h.release();
+
+        const input_el = dom.document().createElement("input");
+        defer input_el.release();
+        input_el.setFiles(file_list);
+        const el_files = input_el.files();
+        el_files.release();
+
+        const drag_ev = DragEvent.fromHandle(Mock.allocHandle("DragEvent"));
+        defer drag_ev.release();
+        const ev_dt = drag_ev.dataTransfer();
+        ev_dt.release();
+    }
+    try Mock.assertNoHandleLeaks();
+}

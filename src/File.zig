@@ -206,6 +206,61 @@ pub fn stream(self: File) zjb.Handle {
     return self.asBlob().stream();
 }
 
+// 8. Extra classes and constants
+/// Typed view/iterator over a browser `FileList` (e.g. `DataTransfer.files` or
+/// `HTMLInputElement.files`).
+/// https://developer.mozilla.org/en-US/docs/Web/API/FileList
+pub const List = struct {
+    handle: zjb.Handle,
+    pos: usize = 0,
+
+    pub const @"null": List = .{ .handle = .null };
+
+    /// Wraps a non-null JS `FileList` handle.
+    pub fn fromHandle(handle: zjb.Handle) List {
+        std.debug.assert(!handle.isNull());
+        std.debug.assert(@backingInt(handle) != 0);
+        return .{ .handle = handle };
+    }
+
+    /// Returns true if the underlying JS handle is null or undefined.
+    pub fn isNull(self: List) bool {
+        return self.handle.isNull();
+    }
+
+    /// Releases the underlying JS handle.
+    pub fn release(self: List) void {
+        self.handle.release();
+    }
+
+    /// Returns the number of `File` entries in the list (`fileList.length`).
+    pub fn len(self: List) usize {
+        if (self.handle.isNull()) return 0;
+        const raw = self.handle.get("length", i32);
+        return if (raw > 0) @intCast(raw) else 0;
+    }
+
+    /// Returns an owned `File` at `idx`, or `null` if out of bounds.
+    /// https://developer.mozilla.org/en-US/docs/Web/API/FileList/item
+    pub fn get(self: List, idx: usize) ?File {
+        if (idx >= self.len()) return null;
+        const item = self.handle.call("item", .{@as(i32, @intCast(idx))}, zjb.Handle);
+        if (item.isNull()) {
+            item.release();
+            return null;
+        }
+        return File.fromHandle(item);
+    }
+
+    /// Returns the next owned `File` or `null` when exhausted.
+    pub fn next(self: *List) ?File {
+        const cur = self.pos;
+        if (cur >= self.len()) return null;
+        self.pos += 1;
+        return self.get(cur);
+    }
+};
+
 // 9. Private helpers
 fn readStringProp(h: zjb.Handle, comptime prop: []const u8, buf: []u8) []u8 {
     std.debug.assert(!h.isNull());

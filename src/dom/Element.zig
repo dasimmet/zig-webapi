@@ -355,6 +355,29 @@ pub fn getValueInt(self: Element) ?i32 {
     return std.fmt.parseInt(i32, str, 10) catch null;
 }
 
+/// Returns the `File.List` (`element.files`) for an `<input type="file">`, or `.null`.
+/// https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/files
+pub fn files(self: Element) webapi.File.List {
+    std.debug.assert(!self.handle.isNull());
+    std.debug.assert(@backingInt(self.handle) != 0);
+    const list_h = self.handle.get("files", zjb.Handle);
+    if (list_h.isNull()) {
+        list_h.release();
+        return .null;
+    }
+    return webapi.File.List.fromHandle(list_h);
+}
+
+/// Assigns `element.files` on an `<input type="file">` from a `File.List`
+/// (typically obtained from `DataTransfer.files()`).
+/// https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/files
+pub fn setFiles(self: Element, file_list: webapi.File.List) void {
+    std.debug.assert(!self.handle.isNull());
+    std.debug.assert(@backingInt(self.handle) != 0);
+    std.debug.assert(!file_list.isNull());
+    self.handle.set("files", file_list.handle);
+}
+
 /// Views this Element handle as an HTMLIFrameElement.
 pub fn asIFrame(self: Element) HTMLIFrameElement {
     return HTMLIFrameElement.fromElement(self);

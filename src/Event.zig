@@ -10,6 +10,7 @@ pub const BeforeInstallPromptEvent =
     @import("Event/BeforeInstallPromptEvent.zig");
 pub const ClipboardEvent = @import("Event/ClipboardEvent.zig");
 pub const CloseEvent = @import("Event/CloseEvent.zig");
+pub const DragEvent = @import("Event/DragEvent.zig");
 pub const ErrorEvent = @import("Event/ErrorEvent.zig");
 pub const FocusEvent = @import("Event/FocusEvent.zig");
 pub const HashChangeEvent = @import("Event/HashChangeEvent.zig");
@@ -167,6 +168,13 @@ pub fn EventFor(comptime event_name: []const u8) type {
         .{ "paste", ClipboardEvent },
         .{ "copy", ClipboardEvent },
         .{ "cut", ClipboardEvent },
+        .{ "drag", DragEvent },
+        .{ "dragstart", DragEvent },
+        .{ "dragend", DragEvent },
+        .{ "dragenter", DragEvent },
+        .{ "dragover", DragEvent },
+        .{ "dragleave", DragEvent },
+        .{ "drop", DragEvent },
         .{ "mousedown", MouseEvent },
         .{ "mousemove", MouseEvent },
         .{ "mouseup", MouseEvent },

@@ -151,6 +151,30 @@ input[type="text"]:focus {
   outline-offset: 1px;
 }
 
+input[type="file"] {
+  color: var(--muted);
+  font-size: 0.9rem;
+  max-width: 100%;
+}
+
+.drop-zone {
+  border: 2px dashed var(--border);
+  border-radius: 8px;
+  background: var(--code-bg);
+  color: var(--muted);
+  padding: 1.35rem 1rem;
+  text-align: center;
+  margin-bottom: 0.75rem;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.drop-zone.drag-over,
+.drop-zone:focus {
+  border-color: var(--accent);
+  color: var(--text);
+  outline: none;
+}
+
 pre {
   background: var(--code-bg);
   border: 1px solid var(--border);
