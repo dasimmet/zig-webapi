@@ -48,7 +48,6 @@ pub const Worker = @import("Worker.zig");
 
 pub const fetch = Fetch.fetch;
 pub const panic = zjb.panic;
-pub const crypto = Crypto.global;
 
 /// Retrieves cryptographically random 64-bit entropy from
 /// `window.crypto.getRandomValues` and initializes a `std.Random.DefaultPrng`

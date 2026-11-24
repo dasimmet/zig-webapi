@@ -696,7 +696,7 @@ const App = struct {
     }
 
     fn onCryptoRandomClick(_: *App, _: Event.PointerEvent) void {
-        const crypto = webapi.crypto();
+        const crypto = webapi.Crypto.global();
         var rand_bytes: [16]u8 = undefined;
         crypto.getRandomValues(&rand_bytes);
 
@@ -719,7 +719,7 @@ const App = struct {
     }
 
     fn onCryptoDigestClick(self: *App, _: Event.PointerEvent) void {
-        const subtle = webapi.crypto().subtle();
+        const subtle = webapi.Crypto.global().subtle();
         defer subtle.release();
         if (subtle.isNull()) {
             dom.document().setElemText(
