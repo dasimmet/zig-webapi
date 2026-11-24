@@ -31,6 +31,7 @@ pub const dom = @import("dom.zig");
 pub const download = @import("download.zig");
 pub const Event = @import("Event.zig");
 pub const Fetch = @import("Fetch.zig");
+pub const File = @import("File.zig");
 pub const Image = @import("Image.zig");
 pub const IndexedDb = @import("IndexedDb.zig");
 pub const Promise = @import("Promise.zig");

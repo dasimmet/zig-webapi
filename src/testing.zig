@@ -1891,3 +1891,146 @@ test "webapi.WebDAV URL, paths, PROPFIND parsing, and Fetch dispatch" {
     Mock.reset();
     try Mock.assertNoHandleLeaks();
 }
+
+test "dom.Geolocation lifecycle, options, coordinates, and watch without handle leaks" {
+    const warmup = webapi.codec.encode(zjb.constString("").asHandle());
+    warmup.release();
+
+    Mock.reset();
+    {
+        const Geo = dom.Geolocation;
+        try std.testing.expect(Geo.null.isNull());
+        _ = Geo.isSupported();
+
+        const geo = Geo.fromNavigator();
+        defer geo.release();
+        try std.testing.expect(!geo.isNull());
+
+        const nav = dom.window().navigator();
+        defer nav.release();
+        const nav_geo = nav.geolocation();
+        defer nav_geo.release();
+        try std.testing.expect(!nav_geo.isNull());
+
+        const opts: Geo.Options = .{
+            .enable_high_accuracy = true,
+            .timeout = 5000,
+            .maximum_age = 1000,
+        };
+        const opts_h = opts.toHandle();
+        opts_h.release();
+
+        const pos = Geo.Position.fromHandle(Mock.allocHandle("GeolocationPosition"));
+        defer pos.release();
+        const coords = pos.coords();
+        _ = coords.latitude;
+        _ = coords.longitude;
+        _ = coords.altitude;
+        _ = coords.accuracy;
+        _ = coords.altitude_accuracy;
+        _ = coords.heading;
+        _ = coords.speed;
+        _ = pos.timestamp();
+
+        try std.testing.expectEqual(@as(f64, 0.0), Geo.Coordinates.fromHandle(.null).latitude);
+
+        const pos_err = Geo.PositionError.fromHandle(Mock.allocHandle("GeolocationPositionError"));
+        defer pos_err.release();
+        _ = pos_err.code();
+        var msg_buf: [64]u8 = undefined;
+        _ = pos_err.message(&msg_buf);
+
+        const Ctx = struct {
+            ok_count: usize = 0,
+            err_count: usize = 0,
+            fn onOk(c: *@This(), _: Geo.Position) void {
+                c.ok_count += 1;
+            }
+            fn onErr(c: *@This(), _: Geo.PositionError) void {
+                c.err_count += 1;
+            }
+        };
+        var ctx: Ctx = .{};
+
+        geo.getCurrentPosition(Ctx, &ctx, Ctx.onOk, Ctx.onErr, opts);
+        geo.getCurrentPosition(Ctx, &ctx, Ctx.onOk, null, null);
+        const wid = geo.watchPosition(Ctx, &ctx, Ctx.onOk, Ctx.onErr, opts);
+        geo.clearWatch(wid);
+    }
+    try Mock.assertNoHandleLeaks();
+}
+
+test "webapi.File and dom.Share Data, Navigator.canShare, and Navigator.share without handle leaks" {
+    const warmup = webapi.codec.encode(zjb.constString("").asHandle());
+    warmup.release();
+
+    Mock.reset();
+    {
+        const File = webapi.File;
+        const Share = dom.Share;
+        try std.testing.expect(File.null.isNull());
+        _ = File.isSupported();
+
+        const f_bytes = File.fromBytes("abc", "bytes.bin", .{
+            .type = "application/octet-stream",
+            .last_modified = 1_700_000_000_000,
+        });
+        defer f_bytes.release();
+        const f_text = File.fromText("hello share", "hello.txt", .{
+            .type = "text/plain",
+            .endings = .native,
+        });
+        defer f_text.release();
+        const blob = webapi.Blob.fromText("blob body", .{ .type = "text/plain" });
+        defer blob.release();
+        const f_blob = File.fromBlob(blob, "blob.txt", null);
+        defer f_blob.release();
+
+        var buf: [64]u8 = undefined;
+        _ = f_text.name(&buf);
+        _ = f_text.webkitRelativePath(&buf);
+        _ = f_text.size();
+        _ = f_text.mimeType(&buf);
+        _ = f_text.lastModified();
+        const sliced = f_text.slice(0, 5, "text/plain");
+        sliced.release();
+        const text_p = f_text.text();
+        text_p.release();
+        const ab_p = f_text.arrayBuffer();
+        ab_p.release();
+        const bytes_p = f_text.bytes();
+        bytes_p.release();
+        const stream_h = f_text.stream();
+        stream_h.release();
+
+        const empty_data: Share.Data = .{};
+        try std.testing.expect(empty_data.isEmpty());
+
+        const data: Share.Data = .{
+            .title = "zig-webapi",
+            .text = "Share test",
+            .url = "https://example.com",
+            .files = &.{ f_text, f_bytes },
+        };
+        try std.testing.expect(!data.isEmpty());
+        const data_h = data.toHandle();
+        data_h.release();
+
+        _ = Share.isSupported();
+        _ = Share.isCanShareSupported();
+        _ = Share.canShare(data);
+        if (Share.share(data)) |p| {
+            p.release();
+        }
+
+        const nav = dom.window().navigator();
+        defer nav.release();
+        _ = nav.isShareSupported();
+        _ = nav.isCanShareSupported();
+        _ = nav.canShare(data);
+        if (nav.share(data)) |p| {
+            p.release();
+        }
+    }
+    try Mock.assertNoHandleLeaks();
+}

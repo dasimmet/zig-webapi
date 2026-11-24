@@ -128,6 +128,7 @@ const App = struct {
     audio_ctx: WebAudio.AudioContext = .null,
     beep_buffer: WebAudio.AudioBuffer = .null,
     beep_loading: bool = false,
+    geo_watch_id: dom.Geolocation.WatchId = .invalid,
 
     fn init(allocator: std.mem.Allocator) !*App {
         const doc = dom.document();
@@ -1017,6 +1018,216 @@ const App = struct {
         dom.document().setElemText("worker-output", text);
     }
 
+    fn onGeoOnceClick(self: *App, _: Event.PointerEvent) void {
+        const geo = dom.Geolocation.fromNavigator();
+        defer geo.release();
+        if (geo.isNull()) {
+            dom.document().setElemText(
+                "geo-output",
+                "Geolocation is not supported in this browser.",
+            );
+            return;
+        }
+        dom.document().setElemText("geo-output", "Requesting current position...");
+        geo.getCurrentPosition(
+            App,
+            self,
+            onGeoSuccess,
+            onGeoError,
+            .{ .enable_high_accuracy = true, .timeout = 10_000, .maximum_age = 0 },
+        );
+    }
+
+    fn onGeoWatchClick(self: *App, _: Event.PointerEvent) void {
+        const geo = dom.Geolocation.fromNavigator();
+        defer geo.release();
+        if (geo.isNull()) {
+            dom.document().setElemText(
+                "geo-output",
+                "Geolocation is not supported in this browser.",
+            );
+            return;
+        }
+        const doc = dom.document();
+        if (self.geo_watch_id != .invalid) {
+            geo.clearWatch(self.geo_watch_id);
+            self.geo_watch_id = .invalid;
+            doc.setElemText("btn-geo-watch", "Watch Position");
+            doc.setElemText("geo-output", "Stopped watching position.");
+            return;
+        }
+        doc.setElemText("geo-output", "Watching position updates...");
+        self.geo_watch_id = geo.watchPosition(
+            App,
+            self,
+            onGeoSuccess,
+            onGeoError,
+            .{ .enable_high_accuracy = true, .timeout = 10_000, .maximum_age = 0 },
+        );
+        if (self.geo_watch_id != .invalid) {
+            doc.setElemText("btn-geo-watch", "Stop Watch");
+        }
+    }
+
+    fn onGeoSuccess(self: *App, pos: dom.Geolocation.Position) void {
+        const coords = pos.coords();
+        const ts = pos.timestamp();
+        var alt_buf: [32]u8 = undefined;
+        const alt_str = if (coords.altitude) |alt|
+            std.fmt.bufPrint(&alt_buf, "{d:.1} m", .{alt}) catch "n/a"
+        else
+            "n/a";
+        var speed_buf: [32]u8 = undefined;
+        const speed_str = if (coords.speed) |spd|
+            std.fmt.bufPrint(&speed_buf, "{d:.2} m/s", .{spd}) catch "n/a"
+        else
+            "n/a";
+
+        var out_buf: [320]u8 = undefined;
+        const msg = std.fmt.bufPrint(
+            &out_buf,
+            "lat={d:.6}, lon={d:.6}\naccuracy=±{d:.1} m | alt={s} | speed={s}\nwatch={s} | timestamp={d:.0} ms",
+            .{
+                coords.latitude,
+                coords.longitude,
+                coords.accuracy,
+                alt_str,
+                speed_str,
+                if (self.geo_watch_id != .invalid) "active" else "once",
+                ts,
+            },
+        ) catch return;
+        dom.document().setElemText("geo-output", msg);
+    }
+
+    fn onGeoError(self: *App, err: dom.Geolocation.PositionError) void {
+        var msg_buf: [160]u8 = undefined;
+        const err_msg = err.message(&msg_buf);
+        const code_label = switch (err.code()) {
+            .permission_denied => "PERMISSION_DENIED",
+            .position_unavailable => "POSITION_UNAVAILABLE",
+            .timeout => "TIMEOUT",
+            _ => "UNKNOWN",
+        };
+        if (self.geo_watch_id != .invalid) {
+            const geo = dom.Geolocation.fromNavigator();
+            defer geo.release();
+            if (!geo.isNull()) geo.clearWatch(self.geo_watch_id);
+            self.geo_watch_id = .invalid;
+            dom.document().setElemText("btn-geo-watch", "Watch Position");
+        }
+        var out_buf: [256]u8 = undefined;
+        const text = std.fmt.bufPrint(
+            &out_buf,
+            "Geolocation error ({s}): {s}",
+            .{ code_label, if (err_msg.len > 0) err_msg else "no details" },
+        ) catch "Geolocation error.";
+        dom.document().setElemText("geo-output", text);
+    }
+
+    fn onShareLinkClick(self: *App, _: Event.PointerEvent) void {
+        if (!dom.Share.isSupported()) {
+            dom.document().setElemText(
+                "share-output",
+                "Web Share API (navigator.share) is not supported in this browser/context.",
+            );
+            return;
+        }
+        const loc = dom.window().location();
+        defer loc.release();
+        var url_buf: [512]u8 = undefined;
+        const href = loc.getHref(&url_buf);
+
+        const data: dom.Share.Data = .{
+            .title = "zig-webapi Live Example",
+            .text = "Interactive Zig WebAssembly browser APIs demo",
+            .url = if (href.len > 0) href else "https://dasimmet.github.io/zig-webapi/example/",
+        };
+        if (dom.Share.isCanShareSupported() and !dom.Share.canShare(data)) {
+            dom.document().setElemText(
+                "share-output",
+                "navigator.canShare() returned false for link payload.",
+            );
+            return;
+        }
+        const share_p = dom.Share.share(data) orelse {
+            dom.document().setElemText("share-output", "navigator.share() unavailable.");
+            return;
+        };
+        defer share_p.release();
+        dom.document().setElemText("share-output", "Opening share sheet for link...");
+        share_p.thenFn(App, self, onShareDone, onShareError);
+    }
+
+    fn onShareFileClick(self: *App, _: Event.PointerEvent) void {
+        if (!dom.Share.isSupported() or !webapi.File.isSupported()) {
+            dom.document().setElemText(
+                "share-output",
+                "Web Share API / File sharing is not supported in this browser/context.",
+            );
+            return;
+        }
+        var report_buf: [256]u8 = undefined;
+        const report = std.fmt.bufPrint(
+            &report_buf,
+            "zig-webapi share report\nclicks={d}\ntint=({d:.2}, {d:.2}, {d:.2})\n",
+            .{ self.click_count, self.tint[0], self.tint[1], self.tint[2] },
+        ) catch return;
+
+        const file = webapi.File.fromText(
+            report,
+            "zig-webapi-share.txt",
+            .{ .type = "text/plain" },
+        );
+        defer file.release();
+
+        const data: dom.Share.Data = .{
+            .title = "zig-webapi Report",
+            .text = "Generated in Zig WASM via webapi.File",
+            .files = &.{file},
+        };
+        if (!dom.Share.canShare(data)) {
+            dom.document().setElemText(
+                "share-output",
+                "navigator.canShare() reported file sharing is unsupported on this device/browser.",
+            );
+            return;
+        }
+        const share_p = dom.Share.share(data) orelse {
+            dom.document().setElemText("share-output", "navigator.share() unavailable.");
+            return;
+        };
+        defer share_p.release();
+        dom.document().setElemText("share-output", "Opening share sheet for text file...");
+        share_p.thenFn(App, self, onShareDone, onShareError);
+    }
+
+    fn onShareDone(_: *App) void {
+        dom.document().setElemText("share-output", "Shared successfully.");
+    }
+
+    fn onShareError(_: *App, err_h: zjb.Handle) void {
+        var name_buf: [64]u8 = undefined;
+        var msg_buf: [192]u8 = undefined;
+        const name_h = err_h.get("name", zjb.Handle);
+        defer name_h.release();
+        const msg_h = err_h.get("message", zjb.Handle);
+        defer msg_h.release();
+        const err_name = webapi.stringFromHandle(name_h, &name_buf);
+        const err_msg = webapi.stringFromHandle(msg_h, &msg_buf);
+
+        var out_buf: [280]u8 = undefined;
+        const text = std.fmt.bufPrint(
+            &out_buf,
+            "Share failed ({s}): {s}",
+            .{
+                if (err_name.len > 0) err_name else "Error",
+                if (err_msg.len > 0) err_msg else "cancelled or unsupported",
+            },
+        ) catch "Share failed (see console).";
+        dom.document().setElemText("share-output", text);
+    }
+
     fn bindUi(self: *App) void {
         const doc = dom.document();
 
@@ -1059,6 +1270,22 @@ const App = struct {
         if (doc.getElementById("btn-crypto-digest")) |btn| {
             defer btn.release();
             btn.addEventListener("click", App, self, onCryptoDigestClick);
+        }
+        if (doc.getElementById("btn-geo-once")) |btn| {
+            defer btn.release();
+            btn.addEventListener("click", App, self, onGeoOnceClick);
+        }
+        if (doc.getElementById("btn-geo-watch")) |btn| {
+            defer btn.release();
+            btn.addEventListener("click", App, self, onGeoWatchClick);
+        }
+        if (doc.getElementById("btn-share-link")) |btn| {
+            defer btn.release();
+            btn.addEventListener("click", App, self, onShareLinkClick);
+        }
+        if (doc.getElementById("btn-share-file")) |btn| {
+            defer btn.release();
+            btn.addEventListener("click", App, self, onShareFileClick);
         }
         if (doc.getElementById("text-input")) |input| {
             defer input.release();

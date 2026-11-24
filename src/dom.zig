@@ -13,6 +13,7 @@ pub const DOMRectReadOnly = DOMRect;
 pub const DataTransfer = @import("dom/DataTransfer.zig");
 pub const Document = @import("dom/Document.zig");
 pub const Element = @import("dom/Element.zig");
+pub const Geolocation = @import("dom/Geolocation.zig");
 pub const HTMLIFrameElement = @import("dom/HTMLIFrameElement.zig");
 pub const HTMLImageElement = webapi.Image;
 pub const History = @import("dom/History.zig");
@@ -27,6 +28,8 @@ pub const ServiceWorker = @import("dom/ServiceWorker.zig");
 pub const ServiceWorkerContainer = @import("dom/ServiceWorkerContainer.zig");
 pub const ServiceWorkerRegistration =
     @import("dom/ServiceWorkerRegistration.zig");
+pub const Share = @import("dom/Share.zig");
+pub const ShareData = Share.Data;
 pub const TokenList = @import("dom/TokenList.zig");
 pub const VisualViewport = @import("dom/VisualViewport.zig");
 pub const Window = @import("dom/Window.zig");

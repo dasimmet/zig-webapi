@@ -127,6 +127,24 @@
       </div>
       <pre id="audio-output">Click a button to play a generated PCM sine buffer or decode blue-beep.mp3.</pre>
     </section>
+
+    <section class="panel">
+      <h2>Geolocation API (<code>navigator.geolocation</code>)</h2>
+      <div class="row">
+        <button id="btn-geo-once" type="button">Get Current Position</button>
+        <button id="btn-geo-watch" type="button">Watch Position</button>
+      </div>
+      <pre id="geo-output">Click a button to query navigator.geolocation (requires permission and HTTPS or localhost).</pre>
+    </section>
+
+    <section class="panel">
+      <h2>Web Share API (<code>navigator.share</code>)</h2>
+      <div class="row">
+        <button id="btn-share-link" type="button">Share Link</button>
+        <button id="btn-share-file" type="button">Share Text File</button>
+      </div>
+      <pre id="share-output">Click a button to test navigator.canShare() and navigator.share().</pre>
+    </section>
   </main>
 
   <noscript>
