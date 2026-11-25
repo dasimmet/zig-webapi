@@ -122,9 +122,6 @@ pub fn init(options: Options) !*Wasi {
 
 /// Cleans up all resources, memory mappings, and file descriptor tables.
 pub fn deinit(self: *Wasi) void {
-    std.debug.assert(@intFromPtr(self) != 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
-
     self.fs.deinit();
 
     self.instance.release();
@@ -161,9 +158,6 @@ pub fn resetForNextRun(
     self: *Wasi,
     new_args: []const []const u8,
 ) !void {
-    std.debug.assert(@intFromPtr(self) != 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
-
     self.instance.release();
     self.releaseStartHandles();
 
@@ -202,15 +196,11 @@ pub fn resetForNextRun(
 /// Sets the target WebAssembly instance and binds its linear memory buffer.
 pub fn setInstance(self: *Wasi, instance: WebAssembly.Instance) void {
     std.debug.assert(!instance.isNull());
-    std.debug.assert(@intFromPtr(self) != 0);
     self.instance = instance;
 }
 
 /// Generates the JS import object containing WASI host function bindings.
 pub fn getImportObject(self: *Wasi) zjb.Handle {
-    std.debug.assert(@intFromPtr(self) != 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
-
     const needs_jspi = self.fs.needsAsyncIdb() and WebAssembly.isJspiSupported();
     if (!self.import_object.isNull()) {
         if (needs_jspi != self.import_object_has_mounts) {
@@ -324,8 +314,6 @@ pub fn getImportObject(self: *Wasi) zjb.Handle {
 
 /// Returns a strictly monotonically increasing timestamp in nanoseconds.
 pub fn getMonotonicNowNs(self: *Wasi) u64 {
-    std.debug.assert(@intFromPtr(self) != 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
     return self.fs.nextTimestampNs();
 }
 
@@ -342,7 +330,6 @@ pub fn getStderr(self: *Wasi) []const u8 {
 /// Invokes the WASI `_start` export and returns the process exit code.
 pub fn start(self: *Wasi) i32 {
     std.debug.assert(!self.instance.isNull());
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
 
     if (self.startRawPromise(false, false)) |p| {
         p.release();
@@ -354,7 +341,6 @@ pub fn start(self: *Wasi) i32 {
 /// enabled for IndexedFs mounts) and returns a Promise resolving when done.
 pub fn startPromise(self: *Wasi) !webapi.Promise.Typed(void) {
     std.debug.assert(!self.instance.isNull());
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
 
     const use_jspi = self.fs.needsAsyncIdb() and
         WebAssembly.isJspiSupported();
@@ -443,17 +429,12 @@ const RunWasmContext = struct {
     reject_h: zjb.Handle = .null,
 
     fn deinit(self: *RunWasmContext) void {
-        std.debug.assert(@intFromPtr(self) != 0);
-        std.debug.assert(@intFromPtr(self.wasi) != 0);
         if (!self.resolve_h.isNull()) self.resolve_h.release();
         if (!self.reject_h.isNull()) self.reject_h.release();
         self.wasi.allocator.destroy(self);
     }
 
     fn onInstantiated(self: *RunWasmContext, res: WebAssembly.ResultObject) void {
-        std.debug.assert(@intFromPtr(self) != 0);
-        std.debug.assert(@intFromPtr(self.wasi) != 0);
-
         const instance = res.instance();
         if (instance.isNull()) {
             const msg = zjb.constString(
@@ -479,15 +460,11 @@ const RunWasmContext = struct {
     }
 
     fn onInstantiateError(self: *RunWasmContext, err_val: zjb.Handle) void {
-        std.debug.assert(@intFromPtr(self) != 0);
-        std.debug.assert(@intFromPtr(self.wasi) != 0);
         self.reject_h.call("call", .{ zjb.Handle.null, err_val }, void);
         self.deinit();
     }
 
     fn onStarted(self: *RunWasmContext) void {
-        std.debug.assert(@intFromPtr(self) != 0);
-        std.debug.assert(@intFromPtr(self.wasi) != 0);
         self.wasi.releaseLastSuspendingPromise();
         self.resolve_h.call(
             "call",
@@ -498,8 +475,6 @@ const RunWasmContext = struct {
     }
 
     fn onStartError(self: *RunWasmContext, err_val: zjb.Handle) void {
-        std.debug.assert(@intFromPtr(self) != 0);
-        std.debug.assert(@intFromPtr(self.wasi) != 0);
         self.wasi.releaseLastSuspendingPromise();
         self.reject_h.call("call", .{ zjb.Handle.null, err_val }, void);
         self.deinit();
@@ -528,9 +503,6 @@ const AsyncIdbContext = struct {
     reject_h: zjb.Handle = .null,
 
     fn deinit(self: *AsyncIdbContext) void {
-        std.debug.assert(@intFromPtr(self) != 0);
-        std.debug.assert(@intFromPtr(self.wasi) != 0);
-
         if (!self.req.isNull()) {
             self.req.set("onsuccess", zjb.Handle.null);
             self.req.set("onerror", zjb.Handle.null);
@@ -568,9 +540,6 @@ const AsyncIdbContext = struct {
     }
 
     fn finishWithResult(self: *AsyncIdbContext, result_h: zjb.Handle) void {
-        std.debug.assert(@intFromPtr(self) != 0);
-        std.debug.assert(@intFromPtr(self.wasi) != 0);
-
         self.wasi.fs.applyIdbResult(self.mount_point, self.path, result_h);
         const errno = self.complete();
         self.resolve_h.call("call", .{ zjb.Handle.null, errno }, void);
@@ -578,7 +547,6 @@ const AsyncIdbContext = struct {
     }
 
     fn onSuccess(self: *AsyncIdbContext, _: zjb.Handle) void {
-        std.debug.assert(@intFromPtr(self) != 0);
         std.debug.assert(!self.req.isNull());
 
         const result_h = self.req.get("result", zjb.Handle);
@@ -587,7 +555,6 @@ const AsyncIdbContext = struct {
     }
 
     fn onError(self: *AsyncIdbContext, _: zjb.Handle) void {
-        std.debug.assert(@intFromPtr(self) != 0);
         std.debug.assert(!self.req.isNull());
 
         self.finishWithResult(.null);
@@ -625,9 +592,6 @@ fn setBound(
 }
 
 fn releaseStartHandles(self: *Wasi) void {
-    std.debug.assert(@intFromPtr(self) != 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
-
     if (!self.start_run_fn.isNull()) {
         self.start_run_fn.release();
         self.start_run_fn = .null;
@@ -643,9 +607,6 @@ fn releaseStartHandles(self: *Wasi) void {
 }
 
 fn releaseLastSuspendingPromise(self: *Wasi) void {
-    std.debug.assert(@intFromPtr(self) != 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
-
     if (!self.last_suspending_promise.isNull()) {
         self.last_suspending_promise.release();
         self.last_suspending_promise = .null;
@@ -653,15 +614,10 @@ fn releaseLastSuspendingPromise(self: *Wasi) void {
 }
 
 fn onStartFulfilled(self: *Wasi, _: zjb.Handle) void {
-    std.debug.assert(@intFromPtr(self) != 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
     self.releaseStartHandles();
 }
 
 fn onStartRejected(self: *Wasi, err_val: zjb.Handle) void {
-    std.debug.assert(@intFromPtr(self) != 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
-
     const propagate = self.start_propagate_errors;
     self.releaseStartHandles();
     if (!propagate) return;
@@ -687,7 +643,6 @@ fn startRawPromise(
     propagate_errors: bool,
 ) !webapi.Promise.Typed(void) {
     std.debug.assert(!self.instance.isNull());
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
 
     self.releaseStartHandles();
 
@@ -965,9 +920,6 @@ fn wasi_fd_fdstat_get(
 
 /// Updates WASI descriptor flags (`fd_fdstat_set_flags`) on `fd`.
 pub fn fdStatSetFlags(self: *Wasi, fd: i32, flags: i32) i32 {
-    std.debug.assert(@intFromPtr(self) != 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
-
     if (fd >= FileSystem.STDIN_FILENO and fd <= FileSystem.STDERR_FILENO) {
         return 0;
     }

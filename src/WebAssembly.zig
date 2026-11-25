@@ -266,7 +266,6 @@ pub const Suspending = struct {
 
     /// Releases the underlying JavaScript handle and resets to null.
     pub fn release(self: *Suspending) void {
-        std.debug.assert(@intFromPtr(self) != 0);
         if (!self.handle.isNull()) {
             self.handle.release();
             self.handle = .null;

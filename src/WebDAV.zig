@@ -67,7 +67,6 @@ pub fn propfind(
     comptime on_done: *const fn (*Context, Response) void,
 ) !void {
     std.debug.assert(self.dav_root.len > 0);
-    std.debug.assert(@intFromPtr(alloc.vtable) != 0);
     const url = try buildDavItemUrl(alloc, self.dav_root, rel_path);
     defer alloc.free(url);
     try request(alloc, url, .{
@@ -223,7 +222,6 @@ pub fn normalizeRelativePath(
     raw_path: []const u8,
     is_dir: bool,
 ) ![]u8 {
-    std.debug.assert(@intFromPtr(alloc.vtable) != 0);
     const trimmed = std.mem.trim(u8, raw_path, " \t\r\n/");
     if (trimmed.len == 0) return try alloc.dupe(u8, "");
 
@@ -271,7 +269,6 @@ pub fn dirnameOfFilePath(
     alloc: std.mem.Allocator,
     file_path: []const u8,
 ) ![]u8 {
-    std.debug.assert(@intFromPtr(alloc.vtable) != 0);
     const trimmed = std.mem.trim(u8, file_path, "/");
     if (std.mem.lastIndexOfScalar(u8, trimmed, '/')) |idx| {
         return try normalizeRelativePath(alloc, trimmed[0..idx], true);
@@ -287,7 +284,6 @@ pub fn joinDirAndFile(
     file_input: []const u8,
     default_ext: ?[]const u8,
 ) ![]u8 {
-    std.debug.assert(@intFromPtr(alloc.vtable) != 0);
     const clean_input = std.mem.trim(u8, file_input, " \t\r\n");
     if (clean_input.len == 0) return error.EmptyFilename;
 
@@ -327,7 +323,6 @@ pub fn buildDavItemUrl(
     dav_root: []const u8,
     rel_path: []const u8,
 ) ![]u8 {
-    std.debug.assert(@intFromPtr(alloc.vtable) != 0);
     const base = std.mem.trimEnd(u8, dav_root, "/");
     if (base.len == 0) return error.EmptyDavRoot;
 
@@ -361,7 +356,6 @@ pub fn parsePropfindXml(
     current_rel_dir: []const u8,
     options: PropfindOptions,
 ) ![]DavEntry {
-    std.debug.assert(@intFromPtr(alloc.vtable) != 0);
     const trimmed_xml = std.mem.trim(u8, xml, " \t\r\n");
     if (trimmed_xml.len == 0) return try alloc.alloc(DavEntry, 0);
 
@@ -412,7 +406,6 @@ pub fn buildValidatedDavEntry(
     size: ?u64,
     options: PropfindOptions,
 ) !?DavEntry {
-    std.debug.assert(@intFromPtr(alloc.vtable) != 0);
     const rel = extractRelativePathFromHref(
         decoded_href,
         norm_cur,
@@ -478,8 +471,6 @@ pub const DavEntry = struct {
 
     /// Releases owned entry strings.
     pub fn deinit(self: *DavEntry, alloc: std.mem.Allocator) void {
-        std.debug.assert(@intFromPtr(self) != 0);
-        std.debug.assert(@intFromPtr(alloc.vtable) != 0);
         alloc.free(self.name);
         alloc.free(self.rel_path);
         if (self.last_modified) |lm| alloc.free(lm);
@@ -528,7 +519,6 @@ pub const Response = struct {
 // 9. Private declarations
 fn freeOptionalSlice(alloc: std.mem.Allocator, slot: *?[]u8) void {
     std.debug.assert(@intFromPtr(slot) != 0);
-    std.debug.assert(@intFromPtr(alloc.vtable) != 0);
     if (slot.*) |s| {
         alloc.free(s);
         slot.* = null;

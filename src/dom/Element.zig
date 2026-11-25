@@ -437,7 +437,6 @@ pub const Iterator = struct {
     /// Returns the next Element in the NodeList or null when exhausted.
     /// https://developer.mozilla.org/en-US/docs/Web/API/NodeList/item
     pub fn next(self: *Iterator) ?Element {
-        std.debug.assert(@intFromPtr(self) != 0);
         std.debug.assert(!self.handle.isNull());
         const cur = self.pos;
         if (cur >= self.len) return null;

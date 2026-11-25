@@ -54,7 +54,6 @@ pub const ObjectStore = struct {
         val_h: zjb.Handle,
         default_mtime: u64,
     ) ?FileEntryData {
-        std.debug.assert(@intFromPtr(allocator.vtable) != 0);
         if (val_h.isNull()) return null;
 
         const data_h = val_h.get("data", zjb.Handle);
@@ -489,7 +488,6 @@ pub fn open(
 ) !void {
     std.debug.assert(options.name.len > 0);
     std.debug.assert(options.version > 0);
-    std.debug.assert(@intFromPtr(allocator.vtable) != 0);
 
     const idb = zjb.global("window").get("indexedDB", zjb.Handle);
     if (idb.isNull()) return error.IndexedDbNotSupported;
@@ -612,7 +610,6 @@ pub fn loadAllEntries(
     on_done: ?*const fn (*Ctx) void,
 ) !void {
     std.debug.assert(!store.handle.isNull());
-    std.debug.assert(@intFromPtr(allocator.vtable) != 0);
 
     const keys_req = store.getAllKeys();
     if (keys_req.isNull()) return error.GetAllKeysFailed;

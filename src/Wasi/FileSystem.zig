@@ -45,7 +45,6 @@ pub const Options = struct {
 
 /// Initializes the virtual filesystem in-place on stable storage.
 pub fn init(self: *FileSystem, options: FileSystem.Options) !void {
-    std.debug.assert(@intFromPtr(self) != 0);
     std.debug.assert(@intFromPtr(options.allocator.vtable) != 0);
 
     const duped_preopens = try options.allocator.alloc(
@@ -109,9 +108,6 @@ pub fn init(self: *FileSystem, options: FileSystem.Options) !void {
 
 /// Releases all files, directories, descriptors, preopens, and mounts.
 pub fn deinit(self: *FileSystem) void {
-    std.debug.assert(@intFromPtr(self) != 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
-
     for (self.indexed_fs_mounts.items) |*m| {
         m.deinit(self.allocator);
     }
@@ -145,9 +141,6 @@ pub fn deinit(self: *FileSystem) void {
 /// Closes all open file descriptors and resets FD allocation, flushing
 /// written files to any matching IndexedFs mount store.
 pub fn resetFds(self: *FileSystem) void {
-    std.debug.assert(@intFromPtr(self) != 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
-
     var fdit = self.fds.iterator();
     while (fdit.next()) |entry| {
         if (!entry.value_ptr.is_dir and entry.value_ptr.was_written) {
@@ -162,9 +155,6 @@ pub fn resetFds(self: *FileSystem) void {
 
 /// Returns a strictly monotonically increasing timestamp in nanoseconds.
 pub fn nextTimestampNs(self: *FileSystem) u64 {
-    std.debug.assert(@intFromPtr(self) != 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
-
     const now_ms = webapi.Date.now();
     var ns: u64 = if (now_ms > 0.0)
         @intFromFloat(now_ms * 1_000_000.0)
@@ -179,7 +169,6 @@ pub fn nextTimestampNs(self: *FileSystem) u64 {
 
 /// Returns true if the given path is a root or preopened directory.
 pub fn isPreopenOrRoot(self: *const FileSystem, path: []const u8) bool {
-    std.debug.assert(@intFromPtr(self) != 0);
     std.debug.assert(path.len > 0);
 
     if (std.mem.eql(u8, path, "/")) {
@@ -193,14 +182,11 @@ pub fn isPreopenOrRoot(self: *const FileSystem, path: []const u8) bool {
 
 /// Normalizes a POSIX-style path relative to virtual root `/`.
 pub fn normalizePath(self: *const FileSystem, p: []const u8) ![]u8 {
-    std.debug.assert(@intFromPtr(self) != 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
     return std.fs.path.resolveAllocPosix(self.allocator, &.{ "/", p });
 }
 
 /// Ensures all intermediate parent directories of `p` exist.
 pub fn ensureParentDirs(self: *FileSystem, p: []const u8) !void {
-    std.debug.assert(@intFromPtr(self) != 0);
     std.debug.assert(p.len > 0);
 
     var i: usize = 1;
@@ -217,7 +203,6 @@ pub fn ensureParentDirs(self: *FileSystem, p: []const u8) !void {
 
 /// Returns the directory path associated with `dirfd`.
 pub fn getBaseDir(self: *const FileSystem, dirfd: i32) []const u8 {
-    std.debug.assert(@intFromPtr(self) != 0);
     std.debug.assert(dirfd >= 0);
 
     if (dirfd >= FIRST_PREOPEN_FD and
@@ -238,9 +223,6 @@ pub fn resolveNormalizedPath(
     dirfd: i32,
     raw_subpath: []const u8,
 ) ![]u8 {
-    std.debug.assert(@intFromPtr(self) != 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
-
     const base_dir = self.getBaseDir(dirfd);
     const full_path = try std.fs.path.join(
         self.allocator,
@@ -258,9 +240,6 @@ pub fn resolveTargetPath(
     raw_subpath: []const u8,
     try_fallback: bool,
 ) !ResolvedPath {
-    std.debug.assert(@intFromPtr(self) != 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
-
     const norm = try self.resolveNormalizedPath(dirfd, raw_subpath);
     errdefer self.allocator.free(norm);
 
@@ -398,7 +377,6 @@ pub fn findIndexedFsMountPoint(
     path: []const u8,
 ) ?*ActiveIndexedFsMountPoint {
     std.debug.assert(path.len > 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
 
     for (self.indexed_fs_mounts.items) |*m| {
         if (pathMatchesMountPoint(path, m.dir_path)) return m;
@@ -409,7 +387,6 @@ pub fn findIndexedFsMountPoint(
 /// Clears a path from the negative IndexedFs lookup cache.
 pub fn unmarkPathChecked(self: *FileSystem, path: []const u8) void {
     std.debug.assert(path.len > 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
 
     if (self.findIndexedFsMountPoint(path)) |m| {
         if (m.checked_paths.fetchRemove(path)) |old| {
@@ -426,7 +403,6 @@ pub fn putMockIndexedFsEntry(
     mtime: u64,
 ) !void {
     std.debug.assert(path.len > 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
 
     const norm = try self.normalizePath(path);
     defer self.allocator.free(norm);
@@ -478,7 +454,6 @@ pub fn checkIndexedFsForRead(
     path: []const u8,
 ) ?FileEntry {
     std.debug.assert(path.len > 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
 
     const m = self.findIndexedFsMountPoint(path) orelse return null;
     if (self.files.get(path)) |fe| return fe;
@@ -499,7 +474,6 @@ pub fn checkIndexedFsForRead(
 /// Saves a file and its metadata to any matching IndexedFs mount store.
 pub fn saveIndexedFsOnClose(self: *FileSystem, path: []const u8) void {
     std.debug.assert(path.len > 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
 
     const m = self.findIndexedFsMountPoint(path) orelse return;
     const store_key = indexedFsStoreKey(path, m.dir_path) orelse return;
@@ -522,7 +496,6 @@ pub fn saveIndexedFsOnClose(self: *FileSystem, path: []const u8) void {
 /// Removes a file entry from IndexedFs negative cache & IndexedDB store.
 pub fn removeIndexedFsEntry(self: *FileSystem, path: []const u8) void {
     std.debug.assert(path.len > 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
 
     const m = self.findIndexedFsMountPoint(path) orelse return;
     self.unmarkPathChecked(path);
@@ -544,9 +517,6 @@ pub fn removeIndexedFsEntry(self: *FileSystem, path: []const u8) void {
 
 /// Returns true if all configured IndexedFs mount points have opened.
 pub fn areAllIndexedFsMountsReady(self: *const FileSystem) bool {
-    std.debug.assert(@intFromPtr(self) != 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
-
     for (self.indexed_fs_mounts.items) |m| {
         if (!m.is_ready) return false;
     }
@@ -559,7 +529,6 @@ pub fn clearIndexedFsMountPoint(
     dir_path: []const u8,
 ) void {
     std.debug.assert(dir_path.len > 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
 
     const norm = self.normalizePath(dir_path) catch return;
     defer self.allocator.free(norm);
@@ -606,7 +575,6 @@ pub fn applyIdbResult(
     result_h: zjb.Handle,
 ) void {
     std.debug.assert(path.len > 0);
-    std.debug.assert(@intFromPtr(self) != 0);
 
     if (!result_h.isNull()) {
         if (webapi.IndexedDb.ObjectStore.decodeFileEntry(
@@ -630,7 +598,6 @@ pub fn findAsyncIndexedFsMount(
     norm: []const u8,
 ) ?*ActiveIndexedFsMountPoint {
     std.debug.assert(norm.len > 0);
-    std.debug.assert(@intFromPtr(self) != 0);
 
     const m = self.findIndexedFsMountPoint(norm) orelse return null;
     const store_key = indexedFsStoreKey(norm, m.dir_path) orelse return null;
@@ -643,9 +610,6 @@ pub fn findAsyncIndexedFsMount(
 /// Returns true if any active IndexedFs mount still requires lazy async IDB
 /// lookups because it was not fully preloaded into memory.
 pub fn needsAsyncIdb(self: *const FileSystem) bool {
-    std.debug.assert(@intFromPtr(self) != 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
-
     for (self.indexed_fs_mounts.items) |*m| {
         if (!m.isFullyPreloaded()) return true;
     }
@@ -661,7 +625,6 @@ pub fn preloadIndexedFs(
     path_filter: ?[]const u8,
 ) !bool {
     std.debug.assert(dir_path.len > 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
 
     const norm_dir = try self.normalizePath(dir_path);
     defer self.allocator.free(norm_dir);
@@ -728,7 +691,6 @@ pub fn putFileOwnedWithMtime(
     mtime: u64,
 ) !void {
     std.debug.assert(path.len > 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
 
     const norm = try self.normalizePath(path);
     defer self.allocator.free(norm);
@@ -764,7 +726,6 @@ pub fn writeFileWithMtime(
     mtime: u64,
 ) !void {
     std.debug.assert(path.len > 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
 
     const dup_data = try self.allocator.dupe(u8, data);
     errdefer self.allocator.free(dup_data);
@@ -778,7 +739,6 @@ pub fn writeFile(
     data: []const u8,
 ) !void {
     std.debug.assert(path.len > 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
 
     const now_ns = self.nextTimestampNs();
     return self.writeFileWithMtime(path, data, now_ns);
@@ -808,7 +768,6 @@ pub fn fileExists(self: *const FileSystem, path: []const u8) bool {
 /// Returns true if the file was found and removed, false otherwise.
 pub fn removeFile(self: *FileSystem, path: []const u8) bool {
     std.debug.assert(path.len > 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
 
     const norm = self.normalizePath(path) catch return false;
     defer self.allocator.free(norm);
@@ -828,7 +787,6 @@ pub fn removeFile(self: *FileSystem, path: []const u8) bool {
 /// Returns true if any files or directories were removed.
 pub fn removeDirTree(self: *FileSystem, dir_path: []const u8) bool {
     std.debug.assert(dir_path.len > 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
 
     const norm = self.normalizePath(dir_path) catch return false;
     defer self.allocator.free(norm);
@@ -1007,9 +965,6 @@ pub const ActiveIndexedFsMountPoint = struct {
         allocator: std.mem.Allocator,
         owned_prefix: []const u8,
     ) !void {
-        std.debug.assert(@intFromPtr(self) != 0);
-        std.debug.assert(@intFromPtr(allocator.vtable) != 0);
-
         for (self.preloaded_prefixes.items) |existing| {
             if (std.mem.eql(u8, existing, owned_prefix)) {
                 allocator.free(owned_prefix);
@@ -1044,9 +999,6 @@ pub const ActiveIndexedFsMountPoint = struct {
         self: *ActiveIndexedFsMountPoint,
         allocator: std.mem.Allocator,
     ) void {
-        std.debug.assert(@intFromPtr(self) != 0);
-        std.debug.assert(@intFromPtr(allocator.vtable) != 0);
-
         allocator.free(self.dir_path);
         allocator.free(self.db_name);
         allocator.free(self.store_name);
@@ -1100,9 +1052,6 @@ pub const ResolvedPath = struct {
         self: *ResolvedPath,
         allocator: std.mem.Allocator,
     ) void {
-        std.debug.assert(@intFromPtr(self) != 0);
-        std.debug.assert(@intFromPtr(allocator.vtable) != 0);
-
         allocator.free(self.norm);
         if (self.allocated_effective) |p| allocator.free(p);
     }
@@ -1118,7 +1067,6 @@ const IndexedFsOpenContext = struct {
         _: u32,
         _: u32,
     ) void {
-        std.debug.assert(@intFromPtr(self) != 0);
         std.debug.assert(!db.isNull());
 
         const m = &self.fs.indexed_fs_mounts.items[self.mount_index];
@@ -1131,9 +1079,6 @@ const IndexedFsOpenContext = struct {
         self: *IndexedFsOpenContext,
         opt_db: ?webapi.IndexedDb.Database,
     ) void {
-        std.debug.assert(@intFromPtr(self) != 0);
-        std.debug.assert(@intFromPtr(self.fs) != 0);
-
         const m = &self.fs.indexed_fs_mounts.items[self.mount_index];
         if (opt_db) |db| {
             if (m.db.isNull()) m.db = db.retain();
@@ -1153,7 +1098,6 @@ const IndexedFsOpenContext = struct {
         self: *IndexedFsOpenContext,
         db: webapi.IndexedDb.Database,
     ) void {
-        std.debug.assert(@intFromPtr(self) != 0);
         std.debug.assert(!db.isNull());
 
         const m = &self.fs.indexed_fs_mounts.items[self.mount_index];
@@ -1194,8 +1138,6 @@ const IndexedFsOpenContext = struct {
     }
 
     pub fn onError(self: *IndexedFsOpenContext, _: zjb.Handle) void {
-        std.debug.assert(@intFromPtr(self) != 0);
-        std.debug.assert(@intFromPtr(self.fs.allocator.vtable) != 0);
         self.finish(null);
     }
 };
@@ -1288,9 +1230,6 @@ const IndexedFsPreloadContext = struct {
     }
 
     fn finish(self: *IndexedFsPreloadContext, succeeded: bool) void {
-        std.debug.assert(@intFromPtr(self) != 0);
-        std.debug.assert(@intFromPtr(self.fs) != 0);
-
         if (!self.tx.isNull()) {
             self.tx.handle.set("oncomplete", zjb.Handle.null);
             self.tx.handle.set("onerror", zjb.Handle.null);
@@ -1338,7 +1277,6 @@ const IndexedFsPreloadContext = struct {
         default_mtime: u64,
     ) void {
         std.debug.assert(key_str.len > 0);
-        std.debug.assert(@intFromPtr(self.fs) != 0);
 
         var path_buf: [2048]u8 = undefined;
         const sep = if (dir_path.len == 1 and dir_path[0] == '/') "" else "/";
@@ -1364,7 +1302,6 @@ const IndexedFsPreloadContext = struct {
     }
 
     pub fn onComplete(self: *IndexedFsPreloadContext, _: zjb.Handle) void {
-        std.debug.assert(@intFromPtr(self) != 0);
         std.debug.assert(!self.keys_req.isNull());
 
         const keys_arr = self.keys_req.get("result", zjb.Handle);
@@ -1403,8 +1340,6 @@ const IndexedFsPreloadContext = struct {
     }
 
     pub fn onAbortOrError(self: *IndexedFsPreloadContext, _: zjb.Handle) void {
-        std.debug.assert(@intFromPtr(self) != 0);
-        std.debug.assert(@intFromPtr(self.fs.allocator.vtable) != 0);
         self.finish(false);
     }
 };
@@ -1438,7 +1373,6 @@ fn resolvePreloadPrefix(
     preload_path: []const u8,
 ) !?[]const u8 {
     std.debug.assert(dir_path.len > 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
 
     if (preload_path.len == 0 or std.mem.eql(u8, preload_path, ".")) {
         return try self.allocator.dupe(u8, "");
@@ -1494,7 +1428,6 @@ fn markPathChecked(
     path: []const u8,
 ) void {
     std.debug.assert(path.len > 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
 
     if (m.checked_paths.contains(path)) return;
     const dup = self.allocator.dupe(u8, path) catch return;
@@ -1507,7 +1440,6 @@ fn closeMatchingFds(
     recursive: bool,
 ) void {
     std.debug.assert(norm.len > 0);
-    std.debug.assert(@intFromPtr(self.allocator.vtable) != 0);
 
     var fds_to_close: std.ArrayList(i32) = .empty;
     defer fds_to_close.deinit(self.allocator);
