@@ -29,6 +29,7 @@ pub fn build(b: *std.Build) void {
         }),
     });
     exe.rdynamic = true;
+    exe.export_table = true;
 
     const zjb_bindings = webapi_pkg.bindgen(b, .{
         .wasm = exe.getEmittedBin(),

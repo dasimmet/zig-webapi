@@ -12,6 +12,7 @@ const DragDropDemo = @import("DragDropDemo.zig");
 const FetchDemo = @import("FetchDemo.zig");
 const GeolocationDemo = @import("GeolocationDemo.zig");
 const NtfyDemo = @import("NtfyDemo.zig");
+const IoDemo = @import("IoDemo.zig");
 const ShareDemo = @import("ShareDemo.zig");
 const VideoInputDemo = @import("VideoInputDemo.zig");
 const WasiDemo = @import("WasiDemo.zig");
@@ -37,6 +38,7 @@ geolocation: GeolocationDemo,
 ntfy: NtfyDemo,
 share: ShareDemo,
 drag_drop: DragDropDemo,
+io_demo: IoDemo,
 
 // 5. init
 /// Allocates `App` on the heap and initializes all demo state structs.
@@ -58,6 +60,7 @@ pub fn init(allocator: std.mem.Allocator) !*App {
         .ntfy = .{ .allocator = allocator },
         .share = .{},
         .drag_drop = .{ .allocator = allocator },
+        .io_demo = .init(allocator),
     };
     return self;
 }
@@ -87,4 +90,5 @@ pub fn start(self: *App) void {
     self.ntfy.bind();
     self.share.bind(&self.webgl);
     self.drag_drop.bind();
+    self.io_demo.bind();
 }

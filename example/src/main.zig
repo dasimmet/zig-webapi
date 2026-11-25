@@ -12,7 +12,9 @@ pub const std_options: std.Options = .{
     },
 };
 
+pub const os = webapi.WebApiIo.freestanding_os;
 pub const panic = webapi.panic;
+pub const std_options_cwd = webapi.WebApiIo.freestandingCwd;
 
 pub fn main(init: std.process.Init.Minimal) !void {
     _ = init;

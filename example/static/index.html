@@ -103,6 +103,16 @@
     </section>
 
     <section class="panel">
+      <h2><code>std.Io</code> (<code>WebApiIo</code>: IndexedDB FS + Fetch + Promises)</h2>
+      <div class="row">
+        <button id="btn-io-fs" type="button">Persist &amp; Read via std.Io.Dir</button>
+        <button id="btn-io-fetch" type="button">Fetch &amp; Save via std.http.Client</button>
+        <button id="btn-io-clear" type="button">Clear IndexedDB</button>
+      </div>
+      <pre id="io-output">Click a button to run standard Zig std.Io file &amp; HTTP operations backed by IndexedDB, Fetch, and Promises.</pre>
+    </section>
+
+    <section class="panel">
       <h2>WASI Hello World</h2>
       <div class="row">
         <button id="btn-wasi" type="button">Run wasi_hello.wasm</button>

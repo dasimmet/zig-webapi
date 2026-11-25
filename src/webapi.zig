@@ -42,6 +42,7 @@ pub const Promise = @import("Promise.zig");
 pub const testing = @import("testing.zig");
 pub const URL = @import("URL.zig");
 pub const Wasi = @import("Wasi.zig");
+pub const WebApiIo = @import("WebApiIo.zig");
 pub const WebAssembly = @import("WebAssembly.zig");
 pub const WebAudio = @import("WebAudio.zig");
 pub const WebDAV = @import("WebDAV.zig");
@@ -51,7 +52,9 @@ pub const WebSocket = @import("WebSocket.zig");
 pub const Worker = @import("Worker.zig");
 
 pub const fetch = Fetch.fetch;
+pub const os = WebApiIo.freestanding_os;
 pub const panic = zjb.panic;
+pub const std_options_cwd = WebApiIo.freestandingCwd;
 
 /// Retrieves cryptographically random 64-bit entropy from
 /// `window.crypto.getRandomValues` and initializes a `std.Random.DefaultPrng`
