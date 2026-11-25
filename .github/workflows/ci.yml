@@ -34,7 +34,7 @@ jobs:
         run: zig build test --summary all
 
       - name: Build documentation, landing page, and example
-        run: zig build docs --summary all
+        run: zig build docs --summary all -Doptimize=small
 
       - name: Upload GitHub Pages artifact
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'

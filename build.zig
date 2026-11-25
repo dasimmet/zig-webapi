@@ -79,7 +79,12 @@ pub fn build(b: *std.Build) void {
     const example_run = std.Build.Step.Run.create(b, "build-example");
     example_run.setCwd(b.path("example"));
     example_run.addArg(b.graph.zig_exe);
-    example_run.addArgs(&.{ "build", "-Doptimize=small", "--prefix" });
+    example_run.addArgs(&.{
+        "build",
+        b.fmt("-Doptimize={s}", .{@tagName(optimize)}),
+        "--prefix",
+    });
+
     const example_prefix = example_run.addOutputDirectoryArg("example-out");
     example_run.has_side_effects = true;
 
