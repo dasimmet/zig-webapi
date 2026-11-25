@@ -75,7 +75,7 @@ fn onDropZoneDrop(self: *DragDropDemo, ev: Event.DragEvent) void {
     }
     defer dt.release();
 
-    var file_list = dt.files();
+    const file_list = dt.files();
     defer file_list.release();
 
     if (file_list.len() > 0) {
@@ -83,7 +83,7 @@ fn onDropZoneDrop(self: *DragDropDemo, ev: Event.DragEvent) void {
             defer input_el.release();
             input_el.setFiles(file_list);
         }
-        self.renderFileListMetadata(&file_list);
+        self.renderFileListMetadata(file_list);
         return;
     }
 
@@ -111,14 +111,14 @@ fn onDropFileInputChange(self: *DragDropDemo, ev_h: zjb.Handle) void {
     defer target_h.release();
 
     const input_el = dom.Element.fromHandle(target_h);
-    var file_list = input_el.files();
+    const file_list = input_el.files();
     if (file_list.isNull()) return;
     defer file_list.release();
 
-    self.renderFileListMetadata(&file_list);
+    self.renderFileListMetadata(file_list);
 }
 
-fn renderFileListMetadata(self: *DragDropDemo, file_list: *webapi.File.List) void {
+fn renderFileListMetadata(self: *DragDropDemo, file_list: webapi.File.List) void {
     const count = file_list.len();
     if (count == 0) {
         dom.document().setElemText("drop-output", "No files selected.");
@@ -130,7 +130,8 @@ fn renderFileListMetadata(self: *DragDropDemo, file_list: *webapi.File.List) voi
     out.print(self.allocator, "Files ({d}):\n", .{count}) catch return;
 
     var idx: usize = 0;
-    while (file_list.next()) |file| {
+    var it = file_list.iterate();
+    while (it.next()) |file| {
         defer file.release();
         idx += 1;
 

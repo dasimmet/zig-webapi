@@ -207,12 +207,11 @@ pub fn stream(self: File) zjb.Handle {
 }
 
 // 8. Extra classes and constants
-/// Typed view/iterator over a browser `FileList` (e.g. `DataTransfer.files` or
+/// Typed view over a browser `FileList` (e.g. `DataTransfer.files` or
 /// `HTMLInputElement.files`).
 /// https://developer.mozilla.org/en-US/docs/Web/API/FileList
 pub const List = struct {
     handle: zjb.Handle,
-    pos: usize = 0,
 
     pub const @"null": List = .{ .handle = .null };
 
@@ -252,12 +251,27 @@ pub const List = struct {
         return File.fromHandle(item);
     }
 
+    /// Returns a stateful `Iterator` over the `File` entries in this list.
+    pub fn iterate(self: List) Iterator {
+        return .{
+            .list = self,
+            .len = self.len(),
+        };
+    }
+};
+
+/// Stateful iterator over the `File` entries of a `File.List`.
+pub const Iterator = struct {
+    list: List,
+    len: usize,
+    pos: usize = 0,
+
     /// Returns the next owned `File` or `null` when exhausted.
-    pub fn next(self: *List) ?File {
+    pub fn next(self: *Iterator) ?File {
         const cur = self.pos;
-        if (cur >= self.len()) return null;
+        if (cur >= self.len) return null;
         self.pos += 1;
-        return self.get(cur);
+        return self.list.get(cur);
     }
 };
 

@@ -8,6 +8,10 @@ const IDB = webapi.IndexedDb;
 const zjb = webapi.zjb;
 const Mock = zjb.Mock;
 
+comptime {
+    std.testing.refAllDecls(webapi);
+}
+
 /// Writes a single-file POSIX ustar tar archive into `buf` via
 /// `std.tar.Writer` and returns the written slice.
 fn buildSingleFileTar(
@@ -2047,6 +2051,8 @@ test "webapi.File.List, dom.DataTransfer, DragEvent, and Element.files integrati
 
         try std.testing.expect(DataTransfer.null.isNull());
         try std.testing.expect(File.List.null.isNull());
+        var null_file_it = File.List.null.iterate();
+        try std.testing.expect(null_file_it.next() == null);
         try std.testing.expect(DataTransfer.Item.null.isNull());
         try std.testing.expect(DataTransfer.ItemList.null.isNull());
         _ = DataTransfer.isSupported();
@@ -2085,13 +2091,14 @@ test "webapi.File.List, dom.DataTransfer, DragEvent, and Element.files integrati
         item_list.remove(0);
         item_list.clear();
 
-        var file_list = dt.files();
+        const file_list = dt.files();
         defer file_list.release();
         _ = file_list.len();
         if (file_list.get(0)) |first_file| {
             first_file.release();
         }
-        while (file_list.next()) |next_file| {
+        var file_it = file_list.iterate();
+        while (file_it.next()) |next_file| {
             next_file.release();
         }
 
