@@ -65,6 +65,17 @@ pub fn code(self: CloseEvent) i32 {
     return self.handle.get("code", i32);
 }
 
+/// Returns `CloseEvent.code` as a typed `WebSocket.CloseCode` enum.
+/// https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent/code
+pub fn closeCode(self: CloseEvent) webapi.WebSocket.CloseCode {
+    const raw = self.code();
+    const clamped: u16 = if (raw >= 0 and raw <= std.math.maxInt(u16))
+        @intCast(raw)
+    else
+        0;
+    return @fromBackingInt(@intCast(clamped));
+}
+
 /// Copies the string indicating the reason the server closed the connection into `buf`.
 /// https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent/reason
 pub fn reason(self: CloseEvent, buf: []u8) []const u8 {
@@ -73,6 +84,19 @@ pub fn reason(self: CloseEvent, buf: []u8) []const u8 {
     const reason_h = self.handle.get("reason", zjb.Handle);
     defer reason_h.release();
     return webapi.stringFromHandle(reason_h, buf);
+}
+
+/// Allocates and returns the UTF-8 close reason string (`CloseEvent.reason`).
+/// https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent/reason
+pub fn reasonAlloc(
+    self: CloseEvent,
+    allocator: std.mem.Allocator,
+) ![]u8 {
+    std.debug.assert(!self.handle.isNull());
+    const reason_h = self.handle.get("reason", zjb.Handle);
+    defer reason_h.release();
+    if (reason_h.isNull()) return "";
+    return try webapi.stringFromHandleAlloc(allocator, reason_h);
 }
 
 /// Returns true if the connection closed cleanly.

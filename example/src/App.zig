@@ -11,6 +11,7 @@ const DomEventsDemo = @import("DomEventsDemo.zig");
 const DragDropDemo = @import("DragDropDemo.zig");
 const FetchDemo = @import("FetchDemo.zig");
 const GeolocationDemo = @import("GeolocationDemo.zig");
+const NtfyDemo = @import("NtfyDemo.zig");
 const ShareDemo = @import("ShareDemo.zig");
 const VideoInputDemo = @import("VideoInputDemo.zig");
 const WasiDemo = @import("WasiDemo.zig");
@@ -33,6 +34,7 @@ web_audio: WebAudioDemo,
 audio_input: AudioInputDemo,
 video_input: VideoInputDemo,
 geolocation: GeolocationDemo,
+ntfy: NtfyDemo,
 share: ShareDemo,
 drag_drop: DragDropDemo,
 
@@ -53,6 +55,7 @@ pub fn init(allocator: std.mem.Allocator) !*App {
         .audio_input = .{},
         .video_input = .{},
         .geolocation = .{},
+        .ntfy = .{ .allocator = allocator },
         .share = .{},
         .drag_drop = .{ .allocator = allocator },
     };
@@ -81,6 +84,7 @@ pub fn start(self: *App) void {
     self.audio_input.bind();
     self.video_input.bind();
     self.geolocation.bind();
+    self.ntfy.bind();
     self.share.bind(&self.webgl);
     self.drag_drop.bind();
 }

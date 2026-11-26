@@ -2383,3 +2383,204 @@ test "WebAudio MediaStreamAudioSourceNode, AnalyserNode, dom.HTMLMediaElement, a
     }
     try Mock.assertNoHandleLeaks();
 }
+
+test "webapi.WebSocket, Event.MessageEvent payload helpers, and Event.CloseEvent without handle leaks" {
+    const warmup = webapi.codec.encode(zjb.constString("").asHandle());
+    warmup.release();
+
+    Mock.reset();
+    {
+        const WebSocket = webapi.WebSocket;
+        const alloc = std.testing.allocator;
+
+        try std.testing.expect(WebSocket.null.isNull());
+        _ = WebSocket.isSupported();
+
+        const ws = WebSocket.init("wss://ntfy.sh/zig-webapi-demo/ws");
+        defer ws.release();
+        try std.testing.expect(!ws.isNull());
+
+        const ws_proto = WebSocket.initWithProtocol("wss://example.com/ws", "chat");
+        ws_proto.release();
+
+        const ws_protos = WebSocket.initWithProtocols("wss://example.com/ws", &.{ "v2.chat", "v1.chat" });
+        ws_protos.release();
+
+        _ = ws.readyState();
+        _ = ws.isOpen();
+        _ = ws.bufferedAmount();
+
+        ws.setBinaryType(.arraybuffer);
+        _ = ws.binaryType();
+
+        var buf: [128]u8 = undefined;
+        _ = ws.url(&buf);
+        const u_alloc = try ws.urlAlloc(alloc);
+        if (u_alloc.len > 0) alloc.free(u_alloc);
+
+        _ = ws.protocol(&buf);
+        const p_alloc = try ws.protocolAlloc(alloc);
+        if (p_alloc.len > 0) alloc.free(p_alloc);
+
+        _ = ws.extensions(&buf);
+        const e_alloc = try ws.extensionsAlloc(alloc);
+        if (e_alloc.len > 0) alloc.free(e_alloc);
+
+        ws.send("raw-bytes");
+        ws.sendBytes("binary-frame");
+        ws.sendText("{\"event\":\"message\"}");
+
+        const blob = webapi.Blob.fromText("blob-frame", .{ .type = "text/plain" });
+        defer blob.release();
+        ws.sendBlob(blob);
+
+        const ab = webapi.createStandaloneUint8Array("abc");
+        defer ab.release();
+        ws.sendArrayBuffer(ab);
+
+        const Ctx = struct {
+            fn onOpen(_: *@This(), _: webapi.Event) void {}
+            fn onMsg(_: *@This(), _: webapi.Event.MessageEvent) void {}
+            fn onClose(_: *@This(), _: webapi.Event.CloseEvent) void {}
+            fn onErr(_: *@This(), _: webapi.Event) void {}
+        };
+        var ctx: Ctx = .{};
+        ws.addEventListener("open", Ctx, &ctx, Ctx.onOpen);
+        ws.addEventListener("message", Ctx, &ctx, Ctx.onMsg);
+        ws.addEventListener("close", Ctx, &ctx, Ctx.onClose);
+        ws.addEventListener("error", Ctx, &ctx, Ctx.onErr);
+
+        ws.close();
+        ws.closeWithCode(.normal_closure, "bye");
+        ws.closeWithCode(.going_away, null);
+
+        const msg_ev = webapi.Event.MessageEvent.fromHandle(Mock.allocHandle("MessageEvent"));
+        defer msg_ev.release();
+        _ = msg_ev.dataKind();
+        _ = msg_ev.dataString(&buf);
+        const ds = try msg_ev.dataStringAlloc(alloc);
+        if (ds.len > 0) alloc.free(ds);
+        _ = try msg_ev.dataBytes(&buf);
+        const db = try msg_ev.dataBytesAlloc(alloc);
+        alloc.free(db);
+        const dblob = msg_ev.dataBlob();
+        dblob.release();
+
+        const close_ev = webapi.Event.CloseEvent.fromHandle(Mock.allocHandle("CloseEvent"));
+        defer close_ev.release();
+        _ = close_ev.code();
+        _ = close_ev.closeCode();
+        _ = close_ev.wasClean();
+        _ = close_ev.reason(&buf);
+        const r_alloc = try close_ev.reasonAlloc(alloc);
+        if (r_alloc.len > 0) alloc.free(r_alloc);
+    }
+    try Mock.assertNoHandleLeaks();
+}
+
+test "webapi.WebSocket, Event.MessageEvent, and Event.CloseEvent without handle leaks" {
+    const warmup = webapi.codec.encode(zjb.constString("").asHandle());
+    warmup.release();
+
+    Mock.reset();
+    {
+        const WebSocket = webapi.WebSocket;
+        const Event = webapi.Event;
+        const alloc = std.testing.allocator;
+
+        try std.testing.expect(WebSocket.null.isNull());
+        _ = WebSocket.isSupported();
+
+        const ws = WebSocket.init("wss://ntfy.sh/zig-webapi-demo/ws");
+        defer ws.release();
+        try std.testing.expect(!ws.isNull());
+
+        const ws_proto = WebSocket.initWithProtocol("wss://example.com/ws", "chat");
+        ws_proto.release();
+
+        const ws_protos = WebSocket.initWithProtocols("wss://example.com/ws", &.{ "v2.chat", "v1.chat" });
+        ws_protos.release();
+
+        const ws_opts = WebSocket.initWithOptions("wss://ntfy.sh/zig-webapi-demo/ws", .{
+            .protocols = &.{ "v1", "json" },
+            .binary_type = .arraybuffer,
+        });
+        ws_opts.release();
+
+        _ = ws.readyState();
+        _ = ws.isOpen();
+        _ = ws.bufferedAmount();
+
+        ws.setBinaryType(.arraybuffer);
+        _ = ws.binaryType();
+
+        var buf: [128]u8 = undefined;
+        _ = ws.url(&buf);
+        const u_alloc = try ws.urlAlloc(alloc);
+        if (u_alloc.len > 0) alloc.free(u_alloc);
+
+        _ = ws.protocol(&buf);
+        const p_alloc = try ws.protocolAlloc(alloc);
+        if (p_alloc.len > 0) alloc.free(p_alloc);
+
+        _ = ws.extensions(&buf);
+        const e_alloc = try ws.extensionsAlloc(alloc);
+        if (e_alloc.len > 0) alloc.free(e_alloc);
+
+        ws.send("raw-bytes");
+        ws.sendBytes("binary-frame");
+        ws.sendText("{\"event\":\"message\"}");
+
+        const blob = webapi.Blob.fromText("blob-frame", .{ .type = "text/plain" });
+        defer blob.release();
+        ws.sendBlob(blob);
+        ws.sendHandle(blob.handle);
+
+        const ab = webapi.createStandaloneUint8Array("abc");
+        defer ab.release();
+        ws.sendArrayBuffer(ab);
+
+        const Ctx = struct {
+            fn onOpen(_: *@This(), _: Event) void {}
+            fn onMsg(_: *@This(), _: WebSocket.MessageEvent) void {}
+            fn onClose(_: *@This(), _: WebSocket.CloseEvent) void {}
+            fn onErr(_: *@This(), _: Event) void {}
+        };
+        var ctx: Ctx = .{};
+        ws.addEventListener("open", Ctx, &ctx, Ctx.onOpen);
+        ws.addEventListener("message", Ctx, &ctx, Ctx.onMsg);
+        ws.addEventListener("close", Ctx, &ctx, Ctx.onClose);
+        ws.addEventListener("error", Ctx, &ctx, Ctx.onErr);
+
+        ws.close();
+        ws.closeWithCode(.normal_closure, "bye");
+        ws.closeWithCode(.going_away, null);
+        ws.closeWithOptions(.{ .code = 1000, .reason = "done" });
+        ws.closeWithOptions(.{});
+
+        const msg_ev = WebSocket.MessageEvent.fromHandle(Mock.allocHandle("MessageEvent"));
+        defer msg_ev.release();
+        _ = msg_ev.dataKind();
+        _ = msg_ev.dataText(&buf);
+        const txt = try msg_ev.dataTextAlloc(alloc);
+        if (txt.len > 0) alloc.free(txt);
+        _ = msg_ev.dataString(&buf);
+        const ds = try msg_ev.dataStringAlloc(alloc);
+        if (ds.len > 0) alloc.free(ds);
+        _ = try msg_ev.dataBytes(&buf);
+        const db = try msg_ev.dataBytesAlloc(alloc);
+        alloc.free(db);
+        const dblob = msg_ev.dataBlob();
+        dblob.release();
+
+        const close_ev = WebSocket.CloseEvent.fromHandle(Mock.allocHandle("CloseEvent"));
+        defer close_ev.release();
+        _ = close_ev.code();
+        _ = close_ev.closeCode();
+        _ = close_ev.wasClean();
+        _ = close_ev.reason(&buf);
+        const r_alloc = try close_ev.reasonAlloc(alloc);
+        if (r_alloc.len > 0) alloc.free(r_alloc);
+    }
+    try Mock.assertNoHandleLeaks();
+}

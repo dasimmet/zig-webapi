@@ -178,6 +178,23 @@
       </div>
       <pre id="drop-output">Drop one or more files above to print name, size, MIME type, and lastModified.</pre>
     </section>
+
+    <section class="panel">
+      <h2>WebSocket Pub/Sub (<code>WebSocket</code> + <code>ntfy.sh</code>)</h2>
+      <div class="row">
+        <label for="ntfy-topic">Topic:</label>
+        <input id="ntfy-topic" type="text" value="zig-webapi-demo" placeholder="zig-webapi-demo">
+      </div>
+      <div class="row" style="margin-top:0.5rem;">
+        <label for="ntfy-message">Message:</label>
+        <input id="ntfy-message" type="text" value="Hello from zig-webapi!" placeholder="Notification text">
+      </div>
+      <div class="row" style="margin-top:0.75rem; margin-bottom:0.75rem;">
+        <button id="btn-ntfy-connect" type="button">Connect WebSocket</button>
+        <button id="btn-ntfy-publish" type="button">Publish via Fetch</button>
+      </div>
+      <pre id="ntfy-output">Click "Connect WebSocket" to subscribe to wss://ntfy.sh/&lt;topic&gt;/ws, then publish messages.</pre>
+    </section>
   </main>
 
   <noscript>
