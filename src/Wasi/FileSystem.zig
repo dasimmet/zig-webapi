@@ -1075,14 +1075,8 @@ const IndexedFsOpenContext = struct {
         }
     }
 
-    fn finish(
-        self: *IndexedFsOpenContext,
-        opt_db: ?webapi.IndexedDb.Database,
-    ) void {
+    fn finish(self: *IndexedFsOpenContext) void {
         const m = &self.fs.indexed_fs_mounts.items[self.mount_index];
-        if (opt_db) |db| {
-            if (m.db.isNull()) m.db = db.retain();
-        }
         m.is_ready = true;
         if (self.fs.on_indexed_fs_mount_ready) |cb| {
             cb(
@@ -1101,10 +1095,14 @@ const IndexedFsOpenContext = struct {
         std.debug.assert(!db.isNull());
 
         const m = &self.fs.indexed_fs_mounts.items[self.mount_index];
-        m.db = db.retain();
+        if (m.db.isNull()) {
+            m.db = db;
+        } else {
+            db.release();
+        }
 
         const pp = m.preload_path orelse {
-            self.finish(null);
+            self.finish();
             return;
         };
 
@@ -1112,33 +1110,33 @@ const IndexedFsOpenContext = struct {
             m.dir_path,
             pp,
         ) catch null) orelse {
-            self.finish(null);
+            self.finish();
             return;
         };
 
-        if (!db.containsStore(m.store_name)) {
+        if (!m.db.containsStore(m.store_name)) {
             m.addPreloadedPrefix(self.fs.allocator, prefix) catch {
                 self.fs.allocator.free(prefix);
             };
-            self.finish(null);
+            self.finish();
             return;
         }
 
         if (IndexedFsPreloadContext.start(
             self.fs,
             self.mount_index,
-            db,
+            m.db,
             prefix,
         )) {
             self.fs.allocator.destroy(self);
             return;
         }
         self.fs.allocator.free(prefix);
-        self.finish(null);
+        self.finish();
     }
 
     pub fn onError(self: *IndexedFsOpenContext, _: zjb.Handle) void {
-        self.finish(null);
+        self.finish();
     }
 };
 

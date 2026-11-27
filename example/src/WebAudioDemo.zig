@@ -151,7 +151,12 @@ fn onAudioMp3Bytes(self: *WebAudioDemo, buf_h: zjb.Handle) void {
     dom.document().setElemText("audio-output", "Decoding blue-beep.mp3...");
     const dec_p = self.audio_ctx.decodeAudioData(buf_h);
     defer dec_p.release();
-    dec_p.thenFn(WebAudioDemo, self, onAudioMp3Decoded, onAudioError);
+    dec_p.thenFnOwned(
+        WebAudioDemo,
+        self,
+        onAudioMp3Decoded,
+        onAudioDecodedError,
+    );
 }
 
 fn onAudioMp3Decoded(self: *WebAudioDemo, decoded: WebAudio.AudioBuffer) void {
@@ -159,9 +164,7 @@ fn onAudioMp3Decoded(self: *WebAudioDemo, decoded: WebAudio.AudioBuffer) void {
     if (!self.beep_buffer.isNull()) {
         self.beep_buffer.release();
     }
-    self.beep_buffer = WebAudio.AudioBuffer.fromHandle(
-        webapi.retainHandle(decoded.handle),
-    );
+    self.beep_buffer = decoded;
     self.playBeepBuffer();
 }
 
@@ -198,6 +201,11 @@ fn onAudioPcmEnded(_: *WebAudioDemo, _: Event) void {
 
 fn onAudioMp3Ended(_: *WebAudioDemo, _: Event) void {
     dom.document().setElemText("audio-output", "blue-beep.mp3 playback finished.");
+}
+
+fn onAudioDecodedError(self: *WebAudioDemo, err_h: zjb.Handle) void {
+    defer if (!err_h.isNull()) err_h.release();
+    self.onAudioError(err_h);
 }
 
 fn onAudioError(self: *WebAudioDemo, err_h: zjb.Handle) void {

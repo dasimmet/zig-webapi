@@ -302,18 +302,6 @@ pub fn boundEventListenerTypedOwned(
     );
 }
 
-/// Creates an independent `zjb.Handle` referencing the same JS value.
-pub fn retainHandle(h: zjb.Handle) zjb.Handle {
-    std.debug.assert(!h.isNull());
-    std.debug.assert(@backingInt(h) != 0);
-
-    const arr = zjb.global("Array").call("of", .{h}, zjb.Handle);
-    defer arr.release();
-    const dup = arr.call("pop", .{}, zjb.Handle);
-    std.debug.assert(!dup.isNull());
-    return dup;
-}
-
 test {
     _ = testing;
 }

@@ -90,14 +90,11 @@ fn onToggleClick(self: *AudioInputDemo, _: Event.PointerEvent) void {
 
     self.request_pending = true;
     dom.document().setElemText("mic-output", "Requesting microphone permission...");
-    stream_p.thenFn(AudioInputDemo, self, onMicStream, onMediaError);
+    stream_p.thenFnOwned(AudioInputDemo, self, onMicStream, onMediaStreamError);
 }
 
-fn onMicStream(self: *AudioInputDemo, borrowed_stream: MediaStream) void {
+fn onMicStream(self: *AudioInputDemo, owned_stream: MediaStream) void {
     self.request_pending = false;
-    const owned_stream = MediaStream.fromHandle(
-        webapi.retainHandle(borrowed_stream.handle),
-    );
 
     if (!WebAudio.AudioContext.isSupported()) {
         owned_stream.stopAllTracks();
@@ -342,6 +339,11 @@ fn onDevicesEnumerated(_: *AudioInputDemo, devices_in: MediaDeviceInfo.List) voi
         ) catch break;
     }
     dom.document().setElemText("mic-output", fbs.buffered());
+}
+
+fn onMediaStreamError(self: *AudioInputDemo, err_h: zjb.Handle) void {
+    defer if (!err_h.isNull()) err_h.release();
+    self.onMediaError(err_h);
 }
 
 fn onMediaError(self: *AudioInputDemo, err_h: zjb.Handle) void {

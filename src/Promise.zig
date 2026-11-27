@@ -56,12 +56,11 @@ pub fn then(
 ) void {
     std.debug.assert(!self.handle.isNull());
     std.debug.assert(@backingInt(self.handle) != 0);
-    const then_p = self.handle.call("then", .{
+    self.handle.call("then", .{
         options.on_success,
         options.on_error,
         options.finally,
-    }, zjb.Handle);
-    then_p.release();
+    }, void);
 }
 
 /// Attaches Zig fulfillment and rejection callbacks bound to `ctx` via
@@ -87,8 +86,33 @@ pub inline fn thenFn(
     else
         .null;
     defer if (!cb_err.isNull()) cb_err.release();
-    const p = self.handle.call("then", .{ cb_ok, cb_err }, zjb.Handle);
-    p.release();
+    self.handle.call("then", .{ cb_ok, cb_err }, void);
+}
+
+/// Attaches Zig fulfillment and rejection callbacks bound to `ctx` via
+/// `.then(ok, err)`. The callback owns the handle.
+/// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/then
+pub inline fn thenFnOwned(
+    self: @This(),
+    comptime Context: type,
+    ctx: *Context,
+    comptime on_ok: ?*const fn (*Context, zjb.Handle) void,
+    comptime on_err: ?*const fn (*Context, zjb.Handle) void,
+) void {
+    std.debug.assert(!self.handle.isNull());
+    std.debug.assert(@intFromPtr(ctx) != 0);
+
+    const cb_ok: zjb.Handle = if (on_ok) |ono|
+        webapi.boundFunctionOwned(Context, ctx, ono)
+    else
+        .null;
+    defer if (!cb_ok.isNull()) cb_ok.release();
+    const cb_err: zjb.Handle = if (on_err) |one|
+        webapi.boundFunctionOwned(Context, ctx, one)
+    else
+        .null;
+    defer if (!cb_err.isNull()) cb_err.release();
+    self.handle.call("then", .{ cb_ok, cb_err }, void);
 }
 
 /// Returns a type-safe `Promise` wrapper converting fulfilled JS handles
@@ -132,15 +156,46 @@ pub fn Typed(comptime T: type) type {
             comptime on_ok: ?*const OkFn(Context),
             comptime on_err: ?*const fn (*Context, zjb.Handle) void,
         ) void {
+            self.thenFnWithOwnership(Context, false, ctx, on_ok, on_err);
+        }
+
+        /// Attaches typed fulfillment (`on_ok`) and raw-handle rejection
+        /// (`on_err`) callbacks bound to `ctx`. Handle-backed `T` values
+        /// passed to `on_ok` and rejection handles passed to `on_err` are
+        /// owned by the callback and must be released when no longer needed.
+        /// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/then
+        pub inline fn thenFnOwned(
+            self: @This(),
+            comptime Context: type,
+            ctx: *Context,
+            comptime on_ok: ?*const OkFn(Context),
+            comptime on_err: ?*const fn (*Context, zjb.Handle) void,
+        ) void {
+            self.thenFnWithOwnership(Context, true, ctx, on_ok, on_err);
+        }
+
+        inline fn thenFnWithOwnership(
+            self: @This(),
+            comptime Context: type,
+            comptime owned: bool,
+            ctx: *Context,
+            comptime on_ok: ?*const OkFn(Context),
+            comptime on_err: ?*const fn (*Context, zjb.Handle) void,
+        ) void {
             std.debug.assert(!self.promise.isNull());
             std.debug.assert(@intFromPtr(ctx) != 0);
 
             const TypeWrapper = struct {
                 fn okWrapper(inner_ctx: *Context, handle: zjb.Handle) void {
-                    const okh = on_ok orelse return;
+                    const okh = on_ok orelse {
+                        if (owned and !handle.isNull()) handle.release();
+                        return;
+                    };
                     if (T == void) {
+                        defer if (owned and !handle.isNull()) handle.release();
                         okh(inner_ctx);
                     } else if (T == i32 or T == i64 or T == f32 or T == f64) {
+                        defer if (owned and !handle.isNull()) handle.release();
                         const num_fn = zjb.global("Number");
                         const code = num_fn.call(
                             "call",
@@ -154,12 +209,12 @@ pub fn Typed(comptime T: type) type {
                 }
             };
 
-            self.promise.thenFn(
-                Context,
-                ctx,
-                if (on_ok != null) &TypeWrapper.okWrapper else null,
-                on_err,
-            );
+            const ok_cb = if (on_ok != null) &TypeWrapper.okWrapper else null;
+            if (owned) {
+                self.promise.thenFnOwned(Context, ctx, ok_cb, on_err);
+            } else {
+                self.promise.thenFn(Context, ctx, ok_cb, on_err);
+            }
         }
 
         /// Releases the underlying JavaScript `Promise` handle.

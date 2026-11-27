@@ -626,6 +626,58 @@ test "webapi.Promise.Typed wrappers and handle cleanup" {
     try Mock.assertNoHandleLeaks();
 }
 
+test "webapi.Promise.Typed.thenFnOwned wrappers and handle cleanup" {
+    Mock.reset();
+    {
+        const Ctx = struct {
+            void_calls: u32 = 0,
+            code_val: i32 = 0,
+            mod_calls: u32 = 0,
+            err_calls: u32 = 0,
+
+            fn onVoid(self: *@This()) void {
+                self.void_calls += 1;
+            }
+
+            fn onCode(self: *@This(), code: i32) void {
+                self.code_val = code;
+            }
+
+            fn onMod(self: *@This(), mod: webapi.WebAssembly.Module) void {
+                defer mod.release();
+                if (!mod.isNull()) self.mod_calls += 1;
+            }
+
+            fn onErr(self: *@This(), err_h: zjb.Handle) void {
+                defer if (!err_h.isNull()) err_h.release();
+                self.err_calls += 1;
+            }
+        };
+
+        var ctx: Ctx = .{};
+
+        const p_void_h = Mock.allocHandle("mock_owned_void_promise");
+        const p_void = webapi.Promise.Typed(void).fromHandle(p_void_h);
+        try std.testing.expect(!p_void.isNull());
+        p_void.thenFnOwned(Ctx, &ctx, &Ctx.onVoid, &Ctx.onErr);
+        p_void.release();
+
+        const p_code_h = Mock.allocHandle("mock_owned_i32_promise");
+        const p_code = webapi.Promise.Typed(i32).fromHandle(p_code_h);
+        try std.testing.expect(!p_code.isNull());
+        p_code.thenFnOwned(Ctx, &ctx, &Ctx.onCode, &Ctx.onErr);
+        p_code.release();
+
+        const p_mod_h = Mock.allocHandle("mock_owned_mod_promise");
+        const p_mod = webapi.Promise.Typed(webapi.WebAssembly.Module)
+            .fromHandle(p_mod_h);
+        try std.testing.expect(!p_mod.isNull());
+        p_mod.thenFnOwned(Ctx, &ctx, &Ctx.onMod, &Ctx.onErr);
+        p_mod.release();
+    }
+    try Mock.assertNoHandleLeaks();
+}
+
 test "webapi shared callback dispatcher and trampolines" {
     Mock.reset();
     {

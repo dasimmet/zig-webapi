@@ -321,13 +321,6 @@ pub const Database = struct {
         return self.handle.isNull();
     }
 
-    /// Returns a retained duplicate Database handle owned by the caller.
-    pub fn retain(self: Database) Database {
-        std.debug.assert(!self.handle.isNull());
-        std.debug.assert(@backingInt(self.handle) != 0);
-        return Database.fromHandle(webapi.retainHandle(self.handle));
-    }
-
     /// Closes the database connection.
     pub fn close(self: Database) void {
         std.debug.assert(!self.handle.isNull());
@@ -401,7 +394,9 @@ pub const Database = struct {
     }
 };
 
-/// Options for opening an IndexedDB database connection.
+/// Options for opening an IndexedDB database connection. `on_upgrade` receives
+/// a borrowed `Database`, whereas `on_success` receives ownership of `Database`
+/// and must release it when finished.
 pub fn OpenOptions(comptime Ctx: type) type {
     return struct {
         name: []const u8,
@@ -460,7 +455,6 @@ fn OpenHandler(comptime Ctx: type) type {
             if (!db_h.isNull()) {
                 const db = Database.fromHandle(db_h);
                 self.on_success(self.ctx, db);
-                db.release();
             }
 
             self.open_req.release();

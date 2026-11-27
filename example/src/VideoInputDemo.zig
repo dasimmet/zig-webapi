@@ -98,14 +98,11 @@ fn onToggleClick(self: *VideoInputDemo, _: Event.PointerEvent) void {
 
     self.request_pending = true;
     dom.document().setElemText("cam-output", "Requesting camera permission...");
-    stream_p.thenFn(VideoInputDemo, self, onCameraStream, onCameraError);
+    stream_p.thenFnOwned(VideoInputDemo, self, onCameraStream, onCameraError);
 }
 
-fn onCameraStream(self: *VideoInputDemo, borrowed_stream: MediaStream) void {
+fn onCameraStream(self: *VideoInputDemo, owned_stream: MediaStream) void {
     self.request_pending = false;
-    const owned_stream = MediaStream.fromHandle(
-        webapi.retainHandle(borrowed_stream.handle),
-    );
 
     if (self.video.isNull()) {
         owned_stream.stopAllTracks();
@@ -250,6 +247,7 @@ fn drawSnapshotPlaceholder(self: *VideoInputDemo, text: []const u8) void {
 }
 
 fn onCameraError(self: *VideoInputDemo, err_h: zjb.Handle) void {
+    defer if (!err_h.isNull()) err_h.release();
     self.request_pending = false;
     var name_buf: [64]u8 = undefined;
     var msg_buf: [192]u8 = undefined;
